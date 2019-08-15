@@ -1,7 +1,13 @@
 package com.taobao.pamirs.schedule.strategy;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
-
+/**
+ * zk中任务策略节点存储的信息，eg:<br>
+ * getData(zkRootPath/strategy/child..)
+ * 
+ * @author Administrator
+ *
+ */
 public class ScheduleStrategy {
 
     public enum Kind {

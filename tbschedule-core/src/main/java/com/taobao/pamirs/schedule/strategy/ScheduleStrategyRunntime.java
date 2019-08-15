@@ -1,7 +1,12 @@
 package com.taobao.pamirs.schedule.strategy;
 
 import com.taobao.pamirs.schedule.strategy.ScheduleStrategy.Kind;
-
+/**
+ * 运行中的服务器节点信息，eg:<br>
+ * getDate(zkRootPath/strategy/uuid)
+ * @author Administrator
+ *
+ */
 public class ScheduleStrategyRunntime {
 
     /**

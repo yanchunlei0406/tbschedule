@@ -24,7 +24,13 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 /**
- * 调度服务器构造器
+ * <b>TBScheduleManagerFactory</b><br>
+ * 				调度服务器构造器<br>
+ * <b>ApplicationContextAware:</b><br>
+ * 				spring容器初始化的时候，会自动的将ApplicationContext注入进来，
+ * 				通过这个上下文环境对象得到Spring容器中的Bean<br>
+ * <b>InitialThread:</b><br>
+ * 				使用该内部类实例化出线程对象，专门用来初始化zookeeper连接
  *
  * @author xuannan
  */
@@ -153,6 +159,11 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         return result;
     }
 
+	/**
+	 * task自循环定期进行状态检测
+	 * 
+	 * @throws Exception
+	 */
     public void refresh() throws Exception {
         this.lock.lock();
         try {
@@ -167,24 +178,34 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             }
             if (isException == true) {
                 try {
-                    stopServer(null); // 停止所有的调度任务
+                	// 停止所有的调度任务
+                    stopServer(null);
+                    // 移除strategy中注册的zk节点信息
                     this.getScheduleStrategyManager().unRregisterManagerFactory(this);
                 } finally {
+                	  // 重新分配调度器
                     reRegisterManagerFactory();
                 }
             } else if (stsInfo.isStart() == false) {
-                stopServer(null); // 停止所有的调度任务
+            	// 停止所有的调度任务
+                stopServer(null); 
+                // 移除strategy中注册的zk节点信息
                 this.getScheduleStrategyManager().unRregisterManagerFactory(this);
             } else {
+            	  // 重新分配调度器
                 reRegisterManagerFactory();
             }
         } finally {
             this.lock.unlock();
         }
     }
-
+    /**
+     * 1: 重新分配调度器<br>
+     * 2: 停止需要注销的调度<br>
+     * 3：根据策略重新分配调度任务的机器<br>
+     * @throws Exception
+     */
     public void reRegisterManagerFactory() throws Exception {
-        // 重新分配调度器
         List<String> stopList = this.getScheduleStrategyManager().registerManagerFactory(this);
         for (String strategyName : stopList) {
             this.stopServer(strategyName);
@@ -194,7 +215,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     }
 
     /**
-     * 根据策略重新分配调度任务的机器
+     * 根据策略重新分配调度任务的机器（只有Leader才需要这样做）
      */
     public void assignScheduleServer() throws Exception {
         for (ScheduleStrategyRunntime run : this.scheduleStrategyManager
@@ -216,7 +237,12 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             }
         }
     }
-
+    /**
+     * 判断UUID序号最小的为Leader
+     * @param uuid
+     * @param factoryList
+     * @return
+     */
     public boolean isLeader(String uuid, List<ScheduleStrategyRunntime> factoryList) {
         try {
             long no = Long.parseLong(uuid.substring(uuid.lastIndexOf("$") + 1));
@@ -261,7 +287,9 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     }
 
     /**
-     * 终止一类任务
+     * @param strategyName </br>
+     * strategyName == null 终止当前UUID注册的所有任务</br>
+     * strategyName != null 终止指定的任务</br>
      */
     public void stopServer(String strategyName) throws Exception {
         if (strategyName == null) {
@@ -423,7 +451,13 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         return zkConfig;
     }
 }
-
+/**
+ * TimerTask对象
+ * task自循环,定期检查zk连接状态,更新心跳时间<br>
+ * 连接失败超过5次后就关闭所有服务，重新连接zk
+ * @author Administrator
+ *
+ */
 class ManagerFactoryTimerTask extends java.util.TimerTask {
 
     private static transient Logger log = LoggerFactory.getLogger(ManagerFactoryTimerTask.class);
@@ -475,9 +509,11 @@ class InitialThread extends Thread {
 
     @Override
     public void run() {
+    	boolean needRestart = false;
         facotry.lock.lock();
         try {
             int count = 0;
+            //检测zk的连接状态
             while (facotry.zkManager.checkZookeeperState() == false) {
                 count = count + 1;
                 if (count % 50 == 0) {
@@ -491,13 +527,31 @@ class InitialThread extends Thread {
                     return;
                 }
             }
+            //zk连接正常后，数据初始化
             facotry.initialData();
         } catch (Throwable e) {
+        	 /**
+             * 这里一般意味着initialData()出错
+             * check成功但初始化失败，说明连接又出问题了，这里继续重试重启状态
+             */
+            needRestart = true;
             log.error(e.getMessage(), e);
         } finally {
             facotry.lock.unlock();
         }
-
+		while (needRestart) {
+			log.error("初始化线程异常，准备重启过程.....");
+			try {
+				facotry.reStart();
+				needRestart = false;
+			} catch (Exception e) {
+				log.error(e.getMessage(), e);
+				try {
+					sleep(20);
+				} catch (InterruptedException e1) {
+				}
+			}
+		}
     }
 
 }

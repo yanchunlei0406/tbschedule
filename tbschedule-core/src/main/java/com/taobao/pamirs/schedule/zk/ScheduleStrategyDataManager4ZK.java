@@ -95,7 +95,13 @@ public class ScheduleStrategyDataManager4ZK {
         }
         ZKTools.deleteTree(this.getZooKeeper(), zkPath);
     }
-
+    /**
+     * 1:获取zkRootPath/strategy下所有子节点<br>
+     * 2:根据节点名称排序<br>
+     * 3:返回所有节点的data信息集合<br>
+     * @return
+     * @throws Exception
+     */
     public List<ScheduleStrategy> loadAllScheduleStrategy() throws Exception {
         String zkPath = this.PATH_Strategy;
         List<ScheduleStrategy> result = new ArrayList<ScheduleStrategy>();
@@ -108,12 +114,17 @@ public class ScheduleStrategyDataManager4ZK {
     }
 
     /**
-     * 注册ManagerFactory
-     *
-     * @return 需要全部注销的调度，例如当IP不在列表中
+     * 注册ManagerFactory<br>
+     * 1：managerFactory如果没有UUID，则根据规则生成一个uuid<br>
+     * 2：zk的factory下不存在该UUID信息，则创建<br>
+     * 3：遍历所有的strategy子策略节点信息：<br>
+     * 	  3.1: 如果策略状态是暂停或者当前服务器不在策略IP范围，清除该子策略下注册的当前服务器UUID信息(如果存在)<br>
+     * 	  3.2: 否则在该子策略下注册当前服务器UUID信息（如果不存在）<br>
+     * 4: 返回符合3.1条件的策略名称集合<br>
+     * 		
+     * @return 需要全部注销的调度
      */
     public List<String> registerManagerFactory(TBScheduleManagerFactory managerFactory) throws Exception {
-
         if (managerFactory.getUuid() == null) {
             String uuid =
                 managerFactory.getIp() + "$" + managerFactory.getHostName() + "$" + UUID.randomUUID().toString()
@@ -129,9 +140,10 @@ public class ScheduleStrategyDataManager4ZK {
         }
 
         List<String> result = new ArrayList<String>();
+        //遍历所有策略节点信息
         for (ScheduleStrategy scheduleStrategy : loadAllScheduleStrategy()) {
             boolean isFind = false;
-            // 暂停或者不在IP范围
+            // 策略状态是暂停或者不在IP范围
             if (ScheduleStrategy.STS_PAUSE.equalsIgnoreCase(scheduleStrategy.getSts()) == false
                 && scheduleStrategy.getIPList() != null) {
                 for (String ip : scheduleStrategy.getIPList()) {
@@ -163,7 +175,9 @@ public class ScheduleStrategyDataManager4ZK {
     }
 
     /**
-     * 注销服务，停止调度
+     * 注销服务，停止调度<br>
+     * 遍历zkRootPath/strategy/*  下的所有策略<br>
+     * 如果当前uuid注册到了该策略下，从该策略移除当前uuid
      */
     public void unRregisterManagerFactory(TBScheduleManagerFactory managerFactory) throws Exception {
         for (String taskName : this.getZooKeeper().getChildren(this.PATH_Strategy, false)) {
@@ -215,7 +229,12 @@ public class ScheduleStrategyDataManager4ZK {
         }
         return result;
     }
-
+    /**
+     * 遍历每个策略下是否存在当前UUID节点，存在则返回UUID节点数据集合
+     * @param managerFactoryUUID
+     * @return
+     * @throws Exception
+     */
     public List<ScheduleStrategyRunntime> loadAllScheduleStrategyRunntimeByUUID(String managerFactoryUUID)
         throws Exception {
         List<ScheduleStrategyRunntime> result = new ArrayList<ScheduleStrategyRunntime>();
