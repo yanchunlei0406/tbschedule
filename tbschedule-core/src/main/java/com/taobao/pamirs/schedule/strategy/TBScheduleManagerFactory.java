@@ -200,9 +200,9 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         }
     }
     /**
-     * 1: 重新分配调度器<br>
+     * 1: 检查调度服务器是否需要重新分配<br>
      * 2: 停止需要注销的调度<br>
-     * 3：根据策略重新分配调度任务的机器<br>
+     * 3：根据策略调整zk中调度服务器requestNum信息<br>
      * @throws Exception
      */
     public void reRegisterManagerFactory() throws Exception {
@@ -215,7 +215,11 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     }
 
     /**
-     * 根据策略重新分配调度任务的机器（只有Leader才需要这样做）
+     * 更新相关策略中每个调度服务器的requestNum信息（只有Leader才需要这样做）<br>
+     * 1：循环当前UUID所注册的每个策略
+     * 1:决断当前UUID是否为Leader
+     * 2:Leader计算出每个调度服务器要分配的任务项数量
+     * 3：Leader更新策略下每个调度服务器的任务数量requestNum 
      */
     public void assignScheduleServer() throws Exception {
         for (ScheduleStrategyRunntime run : this.scheduleStrategyManager
