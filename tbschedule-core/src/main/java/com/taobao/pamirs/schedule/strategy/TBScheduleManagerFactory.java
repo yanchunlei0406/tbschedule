@@ -59,7 +59,10 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
      */
     private IScheduleDataManager scheduleDataManager;
     private ScheduleStrategyDataManager4ZK scheduleStrategyManager;
-
+    /**
+     * key  : 策略名称<br>
+     * value: 任务集合<br>
+     */
     private Map<String, List<IStrategyTask>> managerMap = new ConcurrentHashMap<String, List<IStrategyTask>>();
 
     private ApplicationContext applicationcontext;
@@ -200,9 +203,9 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         }
     }
     /**
-     * 1: 重新分配调度器<br>
+     * 1: 检查调度服务器是否需要重新分配<br>
      * 2: 停止需要注销的调度<br>
-     * 3：根据策略重新分配调度任务的机器<br>
+     * 3：根据策略调整zk中调度服务器应该分配到的任务项requestNum信息<br>
      * @throws Exception
      */
     public void reRegisterManagerFactory() throws Exception {
@@ -215,23 +218,28 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     }
 
     /**
-     * 根据策略重新分配调度任务的机器（只有Leader才需要这样做）
+     * 更新相关策略中每个调度服务器的requestNum信息（只有Leader才需要这样做）<br>
+     * 1：循环当前UUID所注册的每个策略
+     * 1:决断当前UUID是否为Leader
+     * 2:Leader计算出每个调度服务器要分配的任务项数量
+     * 3：Leader更新策略下每个调度服务器的任务項数量requestNum 
      */
     public void assignScheduleServer() throws Exception {
         for (ScheduleStrategyRunntime run : this.scheduleStrategyManager
             .loadAllScheduleStrategyRunntimeByUUID(this.uuid)) {
+        	//当前策略下的线程组集合
             List<ScheduleStrategyRunntime> factoryList = this.scheduleStrategyManager
                 .loadAllScheduleStrategyRunntimeByTaskType(run.getStrategyName());
             if (factoryList.size() == 0 || this.isLeader(this.uuid, factoryList) == false) {
                 continue;
             }
             ScheduleStrategy scheduleStrategy = this.scheduleStrategyManager.loadStrategy(run.getStrategyName());
-
+            //计算每个线程组应当分配到的任务数量(根据任务项创建任务调度器)
             int[] nums = ScheduleUtil.assignTaskNumber(factoryList.size(), scheduleStrategy.getAssignNum(),
                 scheduleStrategy.getNumOfSingleServer());
             for (int i = 0; i < factoryList.size(); i++) {
                 ScheduleStrategyRunntime factory = factoryList.get(i);
-                // 更新请求的服务器数量
+                // 更新每个调度服务器请求的任务项数量
                 this.scheduleStrategyManager
                     .updateStrategyRunntimeReqestNum(run.getStrategyName(), factory.getUuid(), nums[i]);
             }
@@ -257,15 +265,24 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             return true;
         }
     }
-
+    /**
+     * 根据zk节点信息更新实际运行的调度服务器的任务数量
+     * @throws Exception
+     */
     public void reRunScheduleServer() throws Exception {
+    	//当前UUID运行信息集合
         for (ScheduleStrategyRunntime run : this.scheduleStrategyManager
             .loadAllScheduleStrategyRunntimeByUUID(this.uuid)) {
+        	//每个运行中的UUID信息对应策略的BeanTask集合
             List<IStrategyTask> list = this.managerMap.get(run.getStrategyName());
             if (list == null) {
                 list = new ArrayList<IStrategyTask>();
                 this.managerMap.put(run.getStrategyName(), list);
             }
+            /**
+             * list.size()：当前UUID调度服务器在该策略中，现分配到的任务項数量
+             * run.getRequestNum():当前UUID调度服务器在该策略中应当分配到的任务项数量
+             */
             while (list.size() > run.getRequestNum() && list.size() > 0) {
                 IStrategyTask task = list.remove(list.size() - 1);
                 try {
@@ -274,7 +291,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
                     logger.error("注销任务错误：strategyName=" + run.getStrategyName(), e);
                 }
             }
-            // 不足，增加调度器
+            // 不足时，增加调度器
             ScheduleStrategy strategy = this.scheduleStrategyManager.loadStrategy(run.getStrategyName());
             while (list.size() < run.getRequestNum()) {
                 IStrategyTask result = this.createStrategyTask(strategy);

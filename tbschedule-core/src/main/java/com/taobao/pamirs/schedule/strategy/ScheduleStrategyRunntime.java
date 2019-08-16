@@ -3,7 +3,7 @@ package com.taobao.pamirs.schedule.strategy;
 import com.taobao.pamirs.schedule.strategy.ScheduleStrategy.Kind;
 /**
  * 运行中的服务器节点信息，eg:<br>
- * getDate(zkRootPath/strategy/uuid)
+ * getDate(zkRootPath/strategy/strategyName/uuid)
  * @author Administrator
  *
  */

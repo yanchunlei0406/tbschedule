@@ -230,7 +230,10 @@ public class ScheduleStrategyDataManager4ZK {
         return result;
     }
     /**
-     * 遍历每个策略下是否存在当前UUID节点，存在则返回UUID节点数据集合
+     * 返回该UUID在所有策略下的信息集合<br>
+     * 1:遍历每个策略,找出UUID注册的策略
+     * 2:将该UUID节点数据放入集合
+     * 3:遍历完成后返回集合
      * @param managerFactoryUUID
      * @return
      * @throws Exception
@@ -249,7 +252,13 @@ public class ScheduleStrategyDataManager4ZK {
         }
         return result;
     }
-
+    /**
+     * 返回指定策略下所有UUID的信息集合<br>
+     * 进行了按序号升序处理，可以提升判断Leader效率<br>
+     * @param strategyName
+     * @return
+     * @throws Exception
+     */
     public List<ScheduleStrategyRunntime> loadAllScheduleStrategyRunntimeByTaskType(String strategyName)
         throws Exception {
         List<ScheduleStrategyRunntime> result = new ArrayList<ScheduleStrategyRunntime>();
@@ -272,7 +281,7 @@ public class ScheduleStrategyDataManager4ZK {
     }
 
     /**
-     * 更新请求数量
+     * 更新请求的任务数量
      */
     public void updateStrategyRunntimeReqestNum(String strategyName, String manangerFactoryUUID, int requestNum)
         throws Exception {
