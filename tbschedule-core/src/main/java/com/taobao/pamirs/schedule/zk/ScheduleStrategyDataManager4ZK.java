@@ -281,7 +281,7 @@ public class ScheduleStrategyDataManager4ZK {
     }
 
     /**
-     * 更新请求数量
+     * 更新请求的任务数量
      */
     public void updateStrategyRunntimeReqestNum(String strategyName, String manangerFactoryUUID, int requestNum)
         throws Exception {
