@@ -15,7 +15,11 @@ import java.util.List;
 import java.util.UUID;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooKeeper;
-
+/**
+ *	维护/strategy节点和/factory节点模型信息
+ * @author yanchunlei
+ *
+ */
 public class ScheduleStrategyDataManager4ZK {
 
     private ZKManager zkManager;

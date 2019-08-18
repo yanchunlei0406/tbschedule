@@ -136,6 +136,14 @@ public class ZKManager {
         return zk != null && zk.getState() == States.CONNECTED;
     }
 
+	/**
+	 * <b>维护zk根节点信息</b><br>
+	 * 1：zk根节点是否存在<br>
+	 * 2：zk根节点版本信息是否存在<br>
+	 * 3：zk根节点版本信息是否可用<br>
+	 * 
+	 * @throws Exception
+	 */
     public void initial() throws Exception {
         // 当zk状态正常后才能调用
         if (zk.exists(this.getRootPath(), false) == null) {

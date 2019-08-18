@@ -1,13 +1,5 @@
 package com.taobao.pamirs.schedule.strategy;
 
-import com.taobao.pamirs.schedule.ConsoleManager;
-import com.taobao.pamirs.schedule.IScheduleTaskDeal;
-import com.taobao.pamirs.schedule.ScheduleUtil;
-import com.taobao.pamirs.schedule.taskmanager.IScheduleDataManager;
-import com.taobao.pamirs.schedule.taskmanager.TBScheduleManagerStatic;
-import com.taobao.pamirs.schedule.zk.ScheduleDataManager4ZK;
-import com.taobao.pamirs.schedule.zk.ScheduleStrategyDataManager4ZK;
-import com.taobao.pamirs.schedule.zk.ZKManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,12 +8,22 @@ import java.util.Timer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
 import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+
+import com.taobao.pamirs.schedule.ConsoleManager;
+import com.taobao.pamirs.schedule.IScheduleTaskDeal;
+import com.taobao.pamirs.schedule.ScheduleUtil;
+import com.taobao.pamirs.schedule.taskmanager.IScheduleDataManager;
+import com.taobao.pamirs.schedule.taskmanager.TBScheduleManagerStatic;
+import com.taobao.pamirs.schedule.zk.ScheduleDataManager4ZK;
+import com.taobao.pamirs.schedule.zk.ScheduleStrategyDataManager4ZK;
+import com.taobao.pamirs.schedule.zk.ZKManager;
 
 /**
  * <b>TBScheduleManagerFactory</b><br>
@@ -55,7 +57,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     public volatile long timerTaskHeartBeatTS = System.currentTimeMillis();
 
     /**
-     * 调度配置中心客服端
+     * 调度配置中心客户端
      */
     private IScheduleDataManager scheduleDataManager;
     private ScheduleStrategyDataManager4ZK scheduleStrategyManager;
@@ -145,6 +147,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     public IStrategyTask createStrategyTask(ScheduleStrategy strategy) throws Exception {
         IStrategyTask result = null;
         try {
+        	//根据策略配置中，不同的任务类型，创建调度实例
             if (ScheduleStrategy.Kind.Schedule == strategy.getKind()) {
                 String baseTaskType = ScheduleUtil.splitBaseTaskTypeFromTaskType(strategy.getTaskName());
                 String ownSign = ScheduleUtil.splitOwnsignFromTaskType(strategy.getTaskName());
@@ -294,6 +297,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             // 不足时，增加调度器
             ScheduleStrategy strategy = this.scheduleStrategyManager.loadStrategy(run.getStrategyName());
             while (list.size() < run.getRequestNum()) {
+            	//创建调度器实例
                 IStrategyTask result = this.createStrategyTask(strategy);
                 if (null == result) {
                     logger.error("strategy 对应的配置有问题。strategy name=" + strategy.getStrategyName());

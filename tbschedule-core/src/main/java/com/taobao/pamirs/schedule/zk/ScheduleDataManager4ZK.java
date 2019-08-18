@@ -38,6 +38,12 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 	负责zk中baseTaskType及其子节点所有数据模型维护
+ * 
+ * @author yanchunlei
+ *
+ */
 public class ScheduleDataManager4ZK implements IScheduleDataManager {
 
     private static transient Logger log = LoggerFactory.getLogger(ScheduleDataManager4ZK.class);
