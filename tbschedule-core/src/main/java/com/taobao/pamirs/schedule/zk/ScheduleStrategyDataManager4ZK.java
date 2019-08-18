@@ -23,7 +23,7 @@ import org.apache.zookeeper.ZooKeeper;
 public class ScheduleStrategyDataManager4ZK {
 
     private ZKManager zkManager;
-    private String PATH_Strategy;
+	private String PATH_Strategy;
     private String PATH_ManagerFactory;
     private Gson gson;
 

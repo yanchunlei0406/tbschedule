@@ -475,7 +475,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
 /**
  * TimerTask对象
  * task自循环,定期检查zk连接状态,更新心跳时间<br>
- * 连接失败超过5次后就关闭所有服务，重新连接zk
+ *连接失败超过5次后就关闭所有服务，重新连接zk
  * @author Administrator
  *
  */
