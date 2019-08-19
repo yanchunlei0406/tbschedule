@@ -521,7 +521,7 @@ public class ScheduleDataManager4ZK implements IScheduleDataManager {
         String zkPath = this.PATH_BaseTaskType + "/" + baseTaskType + "/" + taskType + "/" + this.PATH_TaskItem;
         return this.getZooKeeper().getChildren(zkPath, false).size();
     }
-
+    //根据baseTaskType/Item节点判断数量是应该否过期删除
     @Override
     public void clearExpireTaskTypeRunningInfo(String baseTaskType, String serverUUID, double expireDateInternal)
         throws Exception {
@@ -533,7 +533,7 @@ public class ScheduleDataManager4ZK implements IScheduleDataManager {
             }
         }
     }
-
+    //根据baseTaskType/server节点判断是否应该过期删除
     @Override
     public int clearExpireScheduleServer(String taskType, long expireTime) throws Exception {
         int result = 0;
