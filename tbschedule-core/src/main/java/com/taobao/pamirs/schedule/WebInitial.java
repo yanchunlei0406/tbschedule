@@ -10,7 +10,7 @@ public class WebInitial extends HttpServlet {
     public void init() throws ServletException {
         super.init();
         try {
-            ConsoleManager.initial();
+            ConsoleManager.initial(null);
         } catch (Exception e) {
             throw new ServletException(e);
         }

@@ -1,5 +1,6 @@
 <%@page import="com.taobao.pamirs.schedule.ConsoleManager" %>
 <%@page import="com.taobao.pamirs.schedule.zk.ZKManager" %>
+<%@page import="com.taobao.pamirs.schedule.SessionPool" %>
 <%@page import="java.util.Properties" %>
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%
@@ -13,7 +14,7 @@
     p.setProperty(ZKManager.keys.zkSessionTimeout.toString(),
             request.getParameter(ZKManager.keys.zkSessionTimeout.toString()));
     try {
-        ConsoleManager.saveConfigInfo(p);
+        ConsoleManager.saveConfigInfo(request,p);
     } catch (Exception e) {
         e.printStackTrace();
         response.sendRedirect("config.jsp?error=" + e.getMessage());

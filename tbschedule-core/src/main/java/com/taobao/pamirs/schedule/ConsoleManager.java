@@ -9,6 +9,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Properties;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,14 +24,19 @@ public class ConsoleManager {
         System.getProperty("user.dir") + File.separator + "pamirsScheduleConfig.properties";
 
     private static TBScheduleManagerFactory scheduleManagerFactory;
-
+    
     public static boolean isInitial() throws Exception {
         return scheduleManagerFactory != null;
     }
 
-    public static boolean initial() throws Exception {
+    public static boolean initial(String sessionId) throws Exception {
+    	SessionPool.getSession();
         if (scheduleManagerFactory != null) {
             return true;
+        }
+        if(StringUtils.isNotEmpty(sessionId)&&SessionPool.getSession(sessionId)!=null) {
+        	scheduleManagerFactory.init((Properties)SessionPool.getSession(sessionId));
+        	log.info("从会话{}中加载配置项",sessionId);
         }
         File file = new File(configFile);
         scheduleManagerFactory = new TBScheduleManagerFactory();
@@ -82,16 +91,26 @@ public class ConsoleManager {
         return properties;
     }
 
-    public static void saveConfigInfo(Properties p) throws Exception {
+    public static void saveConfigInfo(HttpServletRequest request,Properties p) throws Exception {
         try {
+        	if(SessionPool.getSession(request.getSession().getId())!=null) {
+        		SessionPool.setSession(request.getSession().getId(),p);
+        		scheduleManagerFactory.reInit(p);
+        	}else {
+        		SessionPool.setSession(request.getSession().getId(),p);
+        		initial(request.getSession().getId());
+        	}
+            //保存配置信息时，将当前配置信息和会话绑定到一起
+            SessionPool.setSession(request.getSession().getId(),p);
             FileWriter writer = new FileWriter(configFile);
             p.store(writer, "");
             writer.close();
         } catch (Exception ex) {
             throw new Exception("不能写入配置信息到文件：" + configFile, ex);
         }
+        if
         if (scheduleManagerFactory == null) {
-            initial();
+            initial(request.getSession().getId());
         } else {
             scheduleManagerFactory.reInit(p);
         }
