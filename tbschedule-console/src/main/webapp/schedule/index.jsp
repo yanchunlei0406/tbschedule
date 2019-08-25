@@ -2,8 +2,8 @@
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%
     try {
-        ConsoleManager.initial();
-        ConsoleManager.getScheduleDataManager();
+        ConsoleManager.initial(request);
+        ConsoleManager.getScheduleDataManager(request);
         String isManager = request.getParameter("manager");
 %>
 <html>

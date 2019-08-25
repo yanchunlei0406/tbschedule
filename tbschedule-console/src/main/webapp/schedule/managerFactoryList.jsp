@@ -51,7 +51,7 @@
         <th width="50">状态</th>
     </tr>
     <%
-        List<ManagerFactoryInfo> list = ConsoleManager.getScheduleStrategyManager().loadAllManagerFactoryInfo();
+        List<ManagerFactoryInfo> list = ConsoleManager.getScheduleStrategyManager(request).loadAllManagerFactoryInfo();
         String sts = "";
         String action;
         String actionName;

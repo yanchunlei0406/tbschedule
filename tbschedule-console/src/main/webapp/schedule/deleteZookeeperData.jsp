@@ -2,7 +2,7 @@
 <%@page import="java.io.StringWriter" %>
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%
-    if (ConsoleManager.isInitial() == false) {
+    if (ConsoleManager.isInitial(request) == false) {
         response.sendRedirect("config.jsp");
     }
 %>
@@ -16,19 +16,19 @@
         action = "query";
     }
     if (path == null) {
-        path = ConsoleManager.getScheduleStrategyManager().getRootPath();
+        path = ConsoleManager.getScheduleStrategyManager(request).getRootPath();
         action = "query";
     }
     StringWriter writer = new StringWriter();
     if (action.equals("delete")) {
         try {
-            ConsoleManager.getScheduleStrategyManager().deleteTree(path);
+            ConsoleManager.getScheduleStrategyManager(request).deleteTree(path);
             writer.write("删除目录：" + path + "成功！");
         } catch (Exception e) {
             writer.write(e.getMessage());
         }
     } else {
-        ConsoleManager.getScheduleStrategyManager().printTree(path, writer, "<br/>");
+        ConsoleManager.getScheduleStrategyManager(request).printTree(path, writer, "<br/>");
     }
 %>
 数据路径：

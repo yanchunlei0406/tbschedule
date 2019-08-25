@@ -40,23 +40,23 @@
                         .split(","));
             }
             if (action.equalsIgnoreCase("createScheduleStrategy")) {
-                ConsoleManager.getScheduleStrategyManager().createScheduleStrategy(scheduleStrategy);
+                ConsoleManager.getScheduleStrategyManager(request).createScheduleStrategy(scheduleStrategy);
                 isRefreshParent = true;
             } else if (action.equalsIgnoreCase("editScheduleStrategy")) {
-                ConsoleManager.getScheduleStrategyManager().updateScheduleStrategy(scheduleStrategy);
+                ConsoleManager.getScheduleStrategyManager(request).updateScheduleStrategy(scheduleStrategy);
                 isRefreshParent = true;
             }
         } else if (action.equalsIgnoreCase("deleteScheduleStrategy")) {
-            ConsoleManager.getScheduleStrategyManager()
+            ConsoleManager.getScheduleStrategyManager(request)
                     .deleteMachineStrategy(
                             scheduleStrategy.getStrategyName());
             isRefreshParent = true;
         } else if (action.equalsIgnoreCase("pauseTaskType")) {
-            ConsoleManager.getScheduleStrategyManager().pause(
+            ConsoleManager.getScheduleStrategyManager(request).pause(
                     scheduleStrategy.getStrategyName());
             isRefreshParent = true;
         } else if (action.equalsIgnoreCase("resumeTaskType")) {
-            ConsoleManager.getScheduleStrategyManager().resume(
+            ConsoleManager.getScheduleStrategyManager(request).resume(
                     scheduleStrategy.getStrategyName());
             isRefreshParent = true;
         } else {

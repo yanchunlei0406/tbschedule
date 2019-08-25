@@ -86,16 +86,16 @@
     <%
         List<ScheduleServer> serverList = null;
         if (managerFactoryUUID != null && managerFactoryUUID.trim().length() > 0) {
-            serverList = ConsoleManager.getScheduleDataManager()
+            serverList = ConsoleManager.getScheduleDataManager(request)
                     .selectScheduleServerByManagerFactoryUUID(managerFactoryUUID);
         } else {
-            serverList = ConsoleManager.getScheduleDataManager()
+            serverList = ConsoleManager.getScheduleDataManager(request)
                     .selectScheduleServer(baseTaskType, ownSign, ip, orderStr);
         }
 
         for (int j = 0; j < serverList.size(); j++) {
             String bgColor = "";
-            ScheduleTaskType base = ConsoleManager.getScheduleDataManager()
+            ScheduleTaskType base = ConsoleManager.getScheduleDataManager(request)
                     .loadTaskTypeBaseInfo(serverList.get(j).getBaseTaskType());
             if (serverList.get(j).getCenterServerTime().getTime() - serverList.get(j).getHeartBeatTime().getTime()
                     > base.getJudgeDeadInterval()) {

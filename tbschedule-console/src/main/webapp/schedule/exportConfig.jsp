@@ -3,19 +3,19 @@
 <%@ page import="java.io.StringWriter" %>
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%
-    if (ConsoleManager.isInitial() == false) {
+    if (ConsoleManager.isInitial(request) == false) {
         response.sendRedirect("config.jsp");
     }
     StringWriter confWriter = new StringWriter();
     StringWriter errWriter = new StringWriter();
-    String rootPath = ConsoleManager.getScheduleStrategyManager().getRootPath();
+    String rootPath = ConsoleManager.getScheduleStrategyManager(request).getRootPath();
     String type = (String) request.getParameter("type");
     if ("POST".equals(request.getMethod())) {
         StringWriter tmpWriter = new StringWriter();
         try {
             StringBuffer buffer = null;
             if (rootPath != null && rootPath.length() > 0) {
-                buffer = ConsoleManager.getScheduleStrategyManager()
+                buffer = ConsoleManager.getScheduleStrategyManager(request)
                         .exportConfig(rootPath, confWriter);
             } else {
                 tmpWriter.write("没有设置导出配置信息的路径");

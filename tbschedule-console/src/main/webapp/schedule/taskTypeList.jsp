@@ -3,7 +3,7 @@
 <%@page import="java.util.List" %>
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%
-    if (ConsoleManager.isInitial() == false) {
+    if (ConsoleManager.isInitial(request) == false) {
         response.sendRedirect("config.jsp");
     }
 %>
@@ -74,7 +74,7 @@
     </thead>
     <tbody>
     <%
-        List<ScheduleTaskType> taskTypes = ConsoleManager.getScheduleDataManager().getAllTaskTypeBaseInfo();
+        List<ScheduleTaskType> taskTypes = ConsoleManager.getScheduleDataManager(request).getAllTaskTypeBaseInfo();
         String taskItems = "";
         for (int i = 0; i < taskTypes.size(); i++) {
             taskItems = "";

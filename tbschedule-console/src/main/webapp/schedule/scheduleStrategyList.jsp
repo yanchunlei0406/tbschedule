@@ -57,7 +57,7 @@
         <th>IP地址(逗号分隔)</th>
     </tr>
     <%
-        List<ScheduleStrategy> scheduleStrategyList = ConsoleManager.getScheduleStrategyManager()
+        List<ScheduleStrategy> scheduleStrategyList = ConsoleManager.getScheduleStrategyManager(request)
                 .loadAllScheduleStrategy();
         String ipIds = "";
         for (int i = 0; i < scheduleStrategyList.size(); i++) {

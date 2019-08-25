@@ -2,7 +2,7 @@
 <%@page import="java.io.StringWriter" %>
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%
-    if (ConsoleManager.isInitial() == false) {
+    if (ConsoleManager.isInitial(request) == false) {
         response.sendRedirect("config.jsp");
     }
 %>
@@ -11,10 +11,10 @@
 <%
     String path = request.getParameter("path");
     if (path == null) {
-        path = ConsoleManager.getScheduleStrategyManager().getRootPath();
+        path = ConsoleManager.getScheduleStrategyManager(request).getRootPath();
     }
     StringWriter writer = new StringWriter();
-    ConsoleManager.getScheduleStrategyManager().printTree(
+    ConsoleManager.getScheduleStrategyManager(request).printTree(
             path, writer, "<br/>");
 %>
 <pre>

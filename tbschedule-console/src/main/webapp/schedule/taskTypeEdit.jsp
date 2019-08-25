@@ -4,7 +4,7 @@
 <%
     String isManager = request.getParameter("manager");
     String taskTypeName = request.getParameter("taskType");
-    ScheduleTaskType taskType = ConsoleManager.getScheduleDataManager().loadTaskTypeBaseInfo(taskTypeName);
+    ScheduleTaskType taskType = ConsoleManager.getScheduleDataManager(request).loadTaskTypeBaseInfo(taskTypeName);
     String taskItems = "";
     boolean isNew = false;
     String actionName = "editTaskType";

@@ -5,7 +5,7 @@
 <%@ page import="java.io.StringWriter" %>
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%
-    if (ConsoleManager.isInitial() == false) {
+    if (ConsoleManager.isInitial(request) == false) {
         response.sendRedirect("config.jsp");
     }
     StringWriter writer = new StringWriter();
@@ -24,7 +24,7 @@
                 isUploadConfig = true;
                 if (line.contains("strategy")
                         || line.contains("baseTaskType")) {
-                    ConsoleManager.getScheduleStrategyManager()
+                    ConsoleManager.getScheduleStrategyManager(request)
                             .importConfig(line, writer, isUpdate);
                 } else {
                     writer.write("<h3><font color=\"red\">非法配置信息：\n\t\t</font>"

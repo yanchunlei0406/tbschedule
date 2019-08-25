@@ -52,29 +52,29 @@
             taskType.setTaskItems(ScheduleTaskType.splitTaskItem(itemDefines));
             taskType.setSts(request.getParameter("sts"));
             if (action.equalsIgnoreCase("createTaskType")) {
-                ConsoleManager.getScheduleDataManager().createBaseTaskType(taskType);
+                ConsoleManager.getScheduleDataManager(request).createBaseTaskType(taskType);
                 result = "任务" + baseTaskType + "创建成功！！！！";
             } else {
-                ConsoleManager.getScheduleDataManager().updateBaseTaskType(taskType);
+                ConsoleManager.getScheduleDataManager(request).updateBaseTaskType(taskType);
                 result = "任务" + baseTaskType + "修改成功！！！！";
             }
             isRefreshParent = true;
 
         } else if (action.equalsIgnoreCase("clearTaskType")) {
-            ConsoleManager.getScheduleDataManager().clearTaskType(
+            ConsoleManager.getScheduleDataManager(request).clearTaskType(
                     baseTaskType);
             result = "任务" + baseTaskType + "运行期信息清理成功！！！！";
             isRefreshParent = false;
         } else if (action.equalsIgnoreCase("deleteTaskType")) {
-            ConsoleManager.getScheduleDataManager().deleteTaskType(
+            ConsoleManager.getScheduleDataManager(request).deleteTaskType(
                     baseTaskType);
             result = "任务" + baseTaskType + "删除成功！！！！";
             isRefreshParent = true;
         } else if (action.equalsIgnoreCase("pauseTaskType")) {
-            ConsoleManager.getScheduleDataManager().pauseAllServer(baseTaskType);
+            ConsoleManager.getScheduleDataManager(request).pauseAllServer(baseTaskType);
             isRefreshParent = true;
         } else if (action.equalsIgnoreCase("resumeTaskType")) {
-            ConsoleManager.getScheduleDataManager().resumeAllServer(baseTaskType);
+            ConsoleManager.getScheduleDataManager(request).resumeAllServer(baseTaskType);
             isRefreshParent = true;
         } else {
             throw new Exception("不支持的操作：" + action);

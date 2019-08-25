@@ -15,10 +15,10 @@
     String uuid = request.getParameter("uuid");
     try {
         if (action.equalsIgnoreCase("startManagerFactory")) {
-            ConsoleManager.getScheduleStrategyManager().updateManagerFactoryInfo(uuid, true);
+            ConsoleManager.getScheduleStrategyManager(request).updateManagerFactoryInfo(uuid, true);
             isRefreshParent = true;
         } else if (action.equalsIgnoreCase("stopManagerFactory")) {
-            ConsoleManager.getScheduleStrategyManager().updateManagerFactoryInfo(uuid, false);
+            ConsoleManager.getScheduleStrategyManager(request).updateManagerFactoryInfo(uuid, false);
             isRefreshParent = true;
         } else {
             throw new Exception("不支持的操作：" + action);

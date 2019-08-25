@@ -42,7 +42,7 @@
 <%
     String baseTaskType = request.getParameter("baseTaskType");
     String ownSign = request.getParameter("ownSign");
-    List<ScheduleTaskTypeRunningInfo> taskTypeRunningInfoList = ConsoleManager.getScheduleDataManager()
+    List<ScheduleTaskTypeRunningInfo> taskTypeRunningInfoList = ConsoleManager.getScheduleDataManager(request)
             .getAllTaskTypeRunningInfo(baseTaskType);
     if (taskTypeRunningInfoList.size() == 0) {
 %>
@@ -82,11 +82,11 @@
                     <th>处理机器</th>
                 </tr>
                 <%
-                    List<ScheduleServer> serverList = ConsoleManager.getScheduleDataManager()
+                    List<ScheduleServer> serverList = ConsoleManager.getScheduleDataManager(request)
                             .selectAllValidScheduleServer(taskTypeRunningInfoList.get(i).getTaskType());
                     for (int j = 0; j < serverList.size(); j++) {
                         String bgColor = "";
-                        ScheduleTaskType base = ConsoleManager.getScheduleDataManager()
+                        ScheduleTaskType base = ConsoleManager.getScheduleDataManager(request)
                                 .loadTaskTypeBaseInfo(serverList.get(j).getBaseTaskType());
                         if (serverList.get(j).getCenterServerTime().getTime() - serverList.get(j).getHeartBeatTime()
                                 .getTime() > base.getJudgeDeadInterval()) {
@@ -150,7 +150,7 @@
 
                 </tr>
                 <%
-                    List<ScheduleTaskItem> taskItemList = ConsoleManager.getScheduleDataManager()
+                    List<ScheduleTaskItem> taskItemList = ConsoleManager.getScheduleDataManager(request)
                             .loadAllTaskItem(taskTypeRunningInfoList.get(i).getTaskType());
                     for (int j = 0; j < taskItemList.size(); j++) {
                 %>

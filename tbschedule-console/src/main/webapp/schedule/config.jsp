@@ -72,7 +72,7 @@
     <input type="button" value="保存" onclick="save();" style="width:100px">
     <a href="index.jsp?manager=true">管理主页...</a>
     <br/><br/>
-    <% if (ConsoleManager.isInitial() == false) {%>
+    <% if (ConsoleManager.isInitial(request) == false) {%>
     <b>有几种原因导致你需要配置这些信息：</b><br>
     &nbsp&nbsp&nbsp&nbsp 1、你是第一次启动<br>
     &nbsp&nbsp&nbsp&nbsp 2、你的配置信息被删除&nbsp<b><%=ConsoleManager.configFile%>

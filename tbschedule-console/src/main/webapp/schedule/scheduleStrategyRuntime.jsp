@@ -54,10 +54,10 @@
     <%
         List<ScheduleStrategyRunntime> runntimeList = null;
         if (strategyName != null && strategyName.trim().length() > 0) {
-            runntimeList = ConsoleManager.getScheduleStrategyManager()
+            runntimeList = ConsoleManager.getScheduleStrategyManager(request)
                     .loadAllScheduleStrategyRunntimeByTaskType(strategyName);
         } else if (uuid != null && uuid.trim().length() > 0) {
-            runntimeList = ConsoleManager.getScheduleStrategyManager().loadAllScheduleStrategyRunntimeByUUID(uuid);
+            runntimeList = ConsoleManager.getScheduleStrategyManager(request).loadAllScheduleStrategyRunntimeByUUID(uuid);
         } else {
             runntimeList = new ArrayList<ScheduleStrategyRunntime>();
         }

@@ -94,7 +94,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         try {
             this.scheduleDataManager = null;
             this.scheduleStrategyManager = null;
-            ConsoleManager.setScheduleManagerFactory(this);
+            ConsoleManager.setScheduleManagerFactory(p,this);
             if (this.zkManager != null) {
                 this.zkManager.close();
             }
