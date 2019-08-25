@@ -23,14 +23,14 @@ public class ConsoleManager {
 	public final static String configFile = System.getProperty("user.dir") + File.separator
 			+ "pamirsScheduleConfig.properties";
 
-	// private static TBScheduleManagerFactory scheduleManagerFactory;
+	private static TBScheduleManagerFactory scheduleManagerFactory;
 
 	private static HashMap<Integer, TBScheduleManagerFactory> factoryMap = new HashMap<>();
 
 	public static TBScheduleManagerFactory getFactory(HttpServletRequest request) {
 		String sessionId = request.getSession().getId();
 		Properties p = (Properties) SessionPool.getSession(sessionId);
-		return factoryMap.get(p.hashCode());
+		return factoryMap.get(p==null?null:p.hashCode());
 	}
 
 	public static boolean isInitial(HttpServletRequest request) throws Exception {
@@ -38,25 +38,43 @@ public class ConsoleManager {
 	}
 
 	public static boolean initial(HttpServletRequest request) throws Exception {
-		if (getFactory(request) != null) {
-			return true;
-		}
-		Properties p = (Properties) SessionPool.getSession(request==null?null:request.getSession().getId());
-		if (p != null) {
-			TBScheduleManagerFactory scheduleManagerFactory = new TBScheduleManagerFactory();
+		if (request == null) {
+			File file = new File(configFile);
+			scheduleManagerFactory = new TBScheduleManagerFactory();
 			scheduleManagerFactory.start = false;
-			factoryMap.put(p.hashCode(), scheduleManagerFactory);
-			// Console不启动调度能力
+			if (file.exists() == true) {
+				// Console不启动调度能力
+				Properties p = new Properties();
+				FileReader reader = new FileReader(file);
+				p.load(reader);
+				reader.close();
+				scheduleManagerFactory.init(p);
+				log.info("加载Schedule配置文件：" + configFile);
+				return true;
+			} else {
+				return false;
+			}
+		} else {
+			if (getFactory(request) != null) {
+				return true;
+			}
+			Properties p = (Properties) SessionPool.getSession(request == null ? null : request.getSession().getId());
+			if (p != null) {
+				TBScheduleManagerFactory scheduleManagerFactory = new TBScheduleManagerFactory();
+				scheduleManagerFactory.start = false;
+				factoryMap.put(p.hashCode(), scheduleManagerFactory);
+				// Console不启动调度能力
 //            Properties p = new Properties();
 //            FileReader reader = new FileReader(file);
 //            p.load(reader);
 //            reader.close();
-			scheduleManagerFactory.init(p);
+				scheduleManagerFactory.init(p);
 //            log.info("加载Schedule配置文件：" + configFile);
-			log.info("从properties中读取Schedule配置" + p);
-			return true;
-		} else {
-			return false;
+				log.info("从properties中读取Schedule配置" + p);
+				return true;
+			} else {
+				return false;
+			}
 		}
 	}
 
@@ -74,14 +92,19 @@ public class ConsoleManager {
 		return getFactory(request).getScheduleDataManager();
 	}
 
-	public static ScheduleStrategyDataManager4ZK getScheduleStrategyManager(HttpServletRequest request) throws Exception {
+	public static ScheduleStrategyDataManager4ZK getScheduleStrategyManager(HttpServletRequest request)
+			throws Exception {
 		if (isInitial(request) == false) {
 			initial(request);
 		}
 		return getFactory(request).getScheduleStrategyManager();
 	}
 
-	public static Properties loadConfig() throws IOException {
+	public static Properties loadConfig(HttpServletRequest request) throws IOException {
+		Properties p=(Properties)SessionPool.getSession(request.getSession().getId());
+		if(p!=null) {
+			return p;
+		}
 		File file = new File(configFile);
 		Properties properties;
 		if (file.exists() == false) {
@@ -98,7 +121,7 @@ public class ConsoleManager {
 	public static void saveConfigInfo(HttpServletRequest request, Properties p) throws Exception {
 		String sessionId = request.getSession().getId();
 		try {
-			if (SessionPool.getSession(sessionId) != null) {
+			if (getFactory(request)!=null) {
 				SessionPool.setSession(sessionId, p);
 				getFactory(request).reInit(p);
 			} else {
@@ -120,8 +143,8 @@ public class ConsoleManager {
 		}
 	}
 
-	public static void setScheduleManagerFactory(Properties p,TBScheduleManagerFactory scheduleManagerFactory) {
-		//ConsoleManager.scheduleManagerFactory = scheduleManagerFactory;
+	public static void setScheduleManagerFactory(Properties p, TBScheduleManagerFactory scheduleManagerFactory) {
+		// ConsoleManager.scheduleManagerFactory = scheduleManagerFactory;
 		factoryMap.put(p.hashCode(), scheduleManagerFactory);
 	}
 

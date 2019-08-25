@@ -3,7 +3,7 @@
 <%@page import="java.util.Properties" %>
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%
-    Properties p = ConsoleManager.loadConfig();
+    Properties p = ConsoleManager.loadConfig(request);
     String error = request.getParameter("error");
 %>
 <html>
