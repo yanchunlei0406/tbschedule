@@ -23,14 +23,14 @@ public class ConsoleManager {
 	public final static String configFile = System.getProperty("user.dir") + File.separator
 			+ "pamirsScheduleConfig.properties";
 
-	private static TBScheduleManagerFactory scheduleManagerFactory;
+//	private static TBScheduleManagerFactory scheduleManagerFactory;
 
 	private static HashMap<Integer, TBScheduleManagerFactory> factoryMap = new HashMap<>();
 
 	public static TBScheduleManagerFactory getFactory(HttpServletRequest request) {
 		String sessionId = request.getSession().getId();
 		Properties p = (Properties) SessionPool.getSession(sessionId);
-		return factoryMap.get(p==null?null:p.hashCode());
+		return factoryMap.get(p == null ? null : p.hashCode());
 	}
 
 	public static boolean isInitial(HttpServletRequest request) throws Exception {
@@ -38,13 +38,17 @@ public class ConsoleManager {
 	}
 
 	public static boolean initial(HttpServletRequest request) throws Exception {
-		if (request == null) {
+		if (request == null || SessionPool.getSession(request == null ? null : request.getSession().getId()) == null) {
 			File file = new File(configFile);
-			scheduleManagerFactory = new TBScheduleManagerFactory();
+			TBScheduleManagerFactory scheduleManagerFactory = new TBScheduleManagerFactory();
 			scheduleManagerFactory.start = false;
 			if (file.exists() == true) {
 				// Console不启动调度能力
 				Properties p = new Properties();
+				if(request!=null) {
+					SessionPool.setSession(request.getSession().getId(), p);
+//					factoryMap.put(p.hashCode(), scheduleManagerFactory);
+				}
 				FileReader reader = new FileReader(file);
 				p.load(reader);
 				reader.close();
@@ -62,14 +66,8 @@ public class ConsoleManager {
 			if (p != null) {
 				TBScheduleManagerFactory scheduleManagerFactory = new TBScheduleManagerFactory();
 				scheduleManagerFactory.start = false;
-				factoryMap.put(p.hashCode(), scheduleManagerFactory);
-				// Console不启动调度能力
-//            Properties p = new Properties();
-//            FileReader reader = new FileReader(file);
-//            p.load(reader);
-//            reader.close();
+//				factoryMap.put(p.hashCode(), scheduleManagerFactory);
 				scheduleManagerFactory.init(p);
-//            log.info("加载Schedule配置文件：" + configFile);
 				log.info("从properties中读取Schedule配置" + p);
 				return true;
 			} else {
@@ -101,8 +99,8 @@ public class ConsoleManager {
 	}
 
 	public static Properties loadConfig(HttpServletRequest request) throws IOException {
-		Properties p=(Properties)SessionPool.getSession(request.getSession().getId());
-		if(p!=null) {
+		Properties p = (Properties) SessionPool.getSession(request.getSession().getId());
+		if (p != null) {
 			return p;
 		}
 		File file = new File(configFile);
@@ -121,7 +119,7 @@ public class ConsoleManager {
 	public static void saveConfigInfo(HttpServletRequest request, Properties p) throws Exception {
 		String sessionId = request.getSession().getId();
 		try {
-			if (getFactory(request)!=null) {
+			if (getFactory(request) != null) {
 				SessionPool.setSession(sessionId, p);
 				getFactory(request).reInit(p);
 			} else {
@@ -136,11 +134,11 @@ public class ConsoleManager {
 		} catch (Exception ex) {
 			throw new Exception("不能写入配置信息到文件：" + configFile, ex);
 		}
-		if (getFactory(request) == null) {
-			initial(request);
-		} else {
-			getFactory(request).reInit(p);
-		}
+//		if (getFactory(request) == null) {
+//			initial(request);
+//		} else {
+//			getFactory(request).reInit(p);
+//		}
 	}
 
 	public static void setScheduleManagerFactory(Properties p, TBScheduleManagerFactory scheduleManagerFactory) {
