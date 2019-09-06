@@ -6,6 +6,7 @@ import com.taobao.pamirs.schedule.ScheduleUtil;
 import com.taobao.pamirs.schedule.taskmanager.IScheduleDataManager;
 import com.taobao.pamirs.schedule.taskmanager.TBScheduleManagerStatic;
 import com.taobao.pamirs.schedule.zk.ScheduleDataManager4ZK;
+import com.taobao.pamirs.schedule.zk.ScheduleMicroserverDataManager4ZK;
 import com.taobao.pamirs.schedule.zk.ScheduleStrategyDataManager4ZK;
 import com.taobao.pamirs.schedule.zk.ZKManager;
 import java.util.ArrayList;
@@ -51,6 +52,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
      */
     private IScheduleDataManager scheduleDataManager;
     private ScheduleStrategyDataManager4ZK scheduleStrategyManager;
+    private ScheduleMicroserverDataManager4ZK scheduleMicroserverManager;
 
     private Map<String, List<IStrategyTask>> managerMap = new ConcurrentHashMap<String, List<IStrategyTask>>();
 
@@ -94,6 +96,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         try {
             this.scheduleDataManager = null;
             this.scheduleStrategyManager = null;
+            this.scheduleMicroserverManager=null;
             ConsoleManager.setScheduleManagerFactory(p,this);
             if (this.zkManager != null) {
                 this.zkManager.close();
@@ -115,6 +118,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         this.zkManager.initial();
         this.scheduleDataManager = new ScheduleDataManager4ZK(this.zkManager);
         this.scheduleStrategyManager = new ScheduleStrategyDataManager4ZK(this.zkManager);
+        this.scheduleMicroserverManager=new ScheduleMicroserverDataManager4ZK(this.zkManager);
         if (this.start == true) {
             // 注册调度管理器
             this.scheduleStrategyManager.registerManagerFactory(this);
@@ -375,6 +379,13 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             throw new RuntimeException(this.errorMessage);
         }
         return scheduleStrategyManager;
+    }
+    
+    public ScheduleMicroserverDataManager4ZK getScheduleMicroserverManager() {
+        if (this.scheduleMicroserverManager == null) {
+            throw new RuntimeException(this.errorMessage);
+        }
+        return scheduleMicroserverManager;
     }
 
     public void setApplicationContext(ApplicationContext aApplicationcontext) throws BeansException {

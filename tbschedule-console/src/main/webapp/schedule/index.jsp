@@ -49,6 +49,7 @@
     if ("true".equals(isManager)) {
 %>
 <a id="config" onclick="linkOnclick(this);" target="content" href="config.jsp" style="color:#0000CD">Zookeeper连接配置</a>
+<a id="microconfig" onclick="linkOnclick(this);"  target="content" href="microconfig.jsp" style="color:#0000CD">微服务配置</a>
 <a id="zookeeperData" onclick="linkOnclick(this);" target="content" href="zookeeperData.jsp" style="color:#0000CD">Zookeeper数据</a>
 <a id="zookeeperDataExport" onclick="linkOnclick(this);" target="content" href="exportConfig.jsp" style="color:#0000CD">Export配置数据</a>
 <a id="zookeeperDataImport" onclick="linkOnclick(this);" target="content" href="importConfig.jsp" style="color:#0000CD">Import配置数据</a>

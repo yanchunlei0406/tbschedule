@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.taobao.pamirs.schedule.strategy.TBScheduleManagerFactory;
 import com.taobao.pamirs.schedule.taskmanager.IScheduleDataManager;
+import com.taobao.pamirs.schedule.zk.ScheduleMicroserverDataManager4ZK;
 import com.taobao.pamirs.schedule.zk.ScheduleStrategyDataManager4ZK;
 import com.taobao.pamirs.schedule.zk.ZKManager;
 
@@ -96,6 +97,13 @@ public class ConsoleManager {
 			initial(request);
 		}
 		return getFactory(request).getScheduleStrategyManager();
+	}
+	public static ScheduleMicroserverDataManager4ZK getScheduleMicroserverManager(HttpServletRequest request)
+			throws Exception {
+		if (isInitial(request) == false) {
+			initial(request);
+		}
+		return getFactory(request).getScheduleMicroserverManager();
 	}
 
 	public static Properties loadConfig(HttpServletRequest request) throws IOException {
