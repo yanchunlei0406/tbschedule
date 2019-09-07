@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.taobao.pamirs.schedule.strategy.TBScheduleManagerFactory;
 import com.taobao.pamirs.schedule.taskmanager.IScheduleDataManager;
+import com.taobao.pamirs.schedule.taskmanager.MicroServer;
 import com.taobao.pamirs.schedule.zk.ScheduleMicroserverDataManager4ZK;
 import com.taobao.pamirs.schedule.zk.ScheduleStrategyDataManager4ZK;
 import com.taobao.pamirs.schedule.zk.ZKManager;
@@ -23,7 +24,9 @@ public class ConsoleManager {
 
 	public final static String configFile = System.getProperty("user.dir") + File.separator
 			+ "pamirsScheduleConfig.properties";
-
+    public enum keys {
+        zkConnectString, rootPath, userName, password, zkSessionTimeout, isCheckParentPath
+    }
 //	private static TBScheduleManagerFactory scheduleManagerFactory;
 
 	private static HashMap<Integer, TBScheduleManagerFactory> factoryMap = new HashMap<>();
@@ -38,6 +41,41 @@ public class ConsoleManager {
 		return getFactory(request) != null;
 	}
 
+	public static boolean goInital(HttpServletRequest request, MicroServer m) throws Exception {
+		if (request == null) {
+			return false;
+		}
+		try {
+			MicroServer micro=ConsoleManager.getScheduleMicroserverManager(request).loadMicro(m.getMicroName());
+			// 要跳转的微服务在Micro中
+			String goRootPath = micro.getMicroValue();
+			// request中有现在的properti配置
+			// 1:取出当前会话的properti
+			Properties p = (Properties) SessionPool.getSession(request.getSession().getId());
+			String rootPath = p.getProperty(keys.rootPath.toString());
+			if (goRootPath.trim().equals(rootPath.trim())) {
+				// 没有变化，不需要刷新跳转
+				return true;
+			}
+			Properties gop = new Properties(p);
+			gop.setProperty(keys.rootPath.toString(), goRootPath);
+			// 微服务对应的工厂已经存在
+			if (factoryMap.containsKey(gop.hashCode())) {
+				// 当前会话指向
+				SessionPool.setSession(request.getSession().getId(), gop);
+				return true;
+			}
+			// 微服务对应的工厂实例不存在
+			TBScheduleManagerFactory scheduleManagerFactory = new TBScheduleManagerFactory();
+			scheduleManagerFactory.start = false;
+			SessionPool.setSession(request.getSession().getId(), gop);
+			scheduleManagerFactory.init(gop);
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
 	public static boolean initial(HttpServletRequest request) throws Exception {
 		if (request == null || SessionPool.getSession(request == null ? null : request.getSession().getId()) == null) {
 			File file = new File(configFile);

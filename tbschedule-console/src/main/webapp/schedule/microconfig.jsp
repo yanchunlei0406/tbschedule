@@ -40,6 +40,7 @@ table{border-collapse:collapse}
      	<td width="120" align="center">
      		<a target="microDetail" href="microEdit.jsp?microName=<%=micros.get(i).getMicroName()%>"  style="color:#0000CD">编辑</a>
      		<a target="microDetail" href="javascript:void(0)" onclick="validateDel('<%=micros.get(i).getMicroName()%>')" style="color:#0000CD">删除</a>
+     		<a target="microDetail" href="javascript:void(0)" onclick="goDeal('<%=micros.get(i).getMicroName()%>')" style="color:#0000CD">跳转</a>
      	</td>
      	<td><%=micros.get(i).getMicroName()%></td>
      	<td><%=micros.get(i).getMicroValue()%></td>
@@ -57,9 +58,9 @@ table{border-collapse:collapse}
 </body>
 </html>
 <script>
-function deleteTaskType(baseTaskType){
+function goDeal(str){
 	//return window.confirm("请确认所有的调度器都已经停止，否则会导致调度器异常！");
-		
+	window.location.href="microDeal.jsp?action=goMicro&microName="+str; 
 }
 
 function validateDel(str) {

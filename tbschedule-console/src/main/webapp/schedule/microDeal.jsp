@@ -17,10 +17,15 @@
 	MicroServer micro = new MicroServer();
 	try {
 		if (action.equalsIgnoreCase("editMicro")
-				|| action.equalsIgnoreCase("createMicro")) {
+				|| action.equalsIgnoreCase("createMicro")||action.equalsIgnoreCase("goMicro")) {
 			micro.setMicroName(request.getParameter("microName"));
 			micro.setMicroValue(request.getParameter("microValue"));
-			if (action.equalsIgnoreCase("createMicro")) {
+			if(action.equalsIgnoreCase("goMicro")){
+				ConsoleManager.goInital(request,micro);
+				isRefreshParent = true;
+				result = "跳转成功！";
+			}
+			else if (action.equalsIgnoreCase("createMicro")) {
 				ConsoleManager.getScheduleMicroserverManager(request).createMicro(micro);
 				isRefreshParent = true;
 				result = "创建成功！";
