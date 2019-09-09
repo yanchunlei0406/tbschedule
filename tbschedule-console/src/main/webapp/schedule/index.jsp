@@ -71,6 +71,7 @@
     managerFactoryList.style.backgroundColor = "";
     serverList.style.backgroundColor = "";
     config.style.backgroundColor = "";
+    microconfig.style.backgroundColor = "";
     zookeeperData.style.backgroundColor = "";
     zookeeperDataExport.style.backgroundColor = "";
     zookeeperDataImport.style.backgroundColor = "";

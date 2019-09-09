@@ -6,14 +6,11 @@ import java.util.List;
 
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooKeeper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.gson.Gson;
 import com.taobao.pamirs.schedule.taskmanager.MicroServer;
 
 public class ScheduleMicroserverDataManager4ZK {
-	private static transient Logger log = LoggerFactory.getLogger(ScheduleMicroserverDataManager4ZK.class);
+	//private static transient Logger log = LoggerFactory.getLogger(ScheduleMicroserverDataManager4ZK.class);
 	private ZKManager zkManager;
 	private String MicroPath;
 
@@ -45,14 +42,21 @@ public class ScheduleMicroserverDataManager4ZK {
 		}
 		return result;
 	}
-
+	public MicroServer loadMicro(String microName) throws Exception {
+		return this.loadMicro(microName, false);
+	}
 	/**
 	 * 
-	 * @param microCode
+	 * 
+	 * @param microName
+	 * @param isDecode 是否需要对微服务名称进行解码处理,前台调用需要 
 	 * @return
 	 * @throws Exception
 	 */
-	public MicroServer loadMicro(String microName) throws Exception {
+	public MicroServer loadMicro(String microName,boolean isDecode) throws Exception {
+		if(isDecode){
+			microName=new String(microName.trim().toString().getBytes("iso8859-1"),"utf-8");
+		}
 		String zkPath = this.MicroPath + "/" + microName;
 		if (this.getZooKeeper().exists(zkPath, false) == null) {
 			return null;
@@ -70,12 +74,13 @@ public class ScheduleMicroserverDataManager4ZK {
 	 * @throws Exception
 	 */
 	public void createMicro(MicroServer ms) throws Exception {
-		String zkPath = this.MicroPath + "/" + ms.getMicroName().trim();
+		String msName=new String(ms.getMicroName().trim().toString().getBytes("iso8859-1"),"utf-8");
+		String zkPath = this.MicroPath + "/" + msName;
 		if (this.getZooKeeper().exists(zkPath, false) == null) {
 			this.getZooKeeper().create(zkPath, ms.getMicroValue().trim().getBytes(), this.zkManager.getAcl(),
 					CreateMode.PERSISTENT);
 		} else {
-			throw new Exception("微服务" + ms.getMicroName() + "已经存在,如果确认需要重建，请先删除");
+			throw new Exception("微服务【" + msName + "】已经存在,如果确认需要重建，请先删除");
 		}
 	}
 
@@ -86,9 +91,10 @@ public class ScheduleMicroserverDataManager4ZK {
 	 */
 	public void updateMicro(MicroServer ms, String microNameOlad) throws Exception {
 		try {
-			String zkPathOld = this.MicroPath + "/" + microNameOlad;
-			String zkPath = this.MicroPath + "/" + ms.getMicroName();
-			if (!ms.getMicroName().equals(microNameOlad)) {
+			String msName=new String(ms.getMicroName().trim().toString().getBytes("iso8859-1"),"utf-8");
+			microNameOlad=new String(microNameOlad.trim().toString().getBytes("iso8859-1"),"utf-8");
+			String zkPath = this.MicroPath + "/" + msName;
+			if (!msName.equals(microNameOlad)) {
 				if(this.getZooKeeper().exists(zkPath, false) != null){
 					throw new Exception("已存在相同的微服务名称！");
 				}
@@ -113,6 +119,7 @@ public class ScheduleMicroserverDataManager4ZK {
 	 */
 	public void deleteMicro(String microName) throws Exception {
 		try {
+			microName=new String(microName.trim().toString().getBytes("iso8859-1"),"utf-8");
 			String zkPath = this.MicroPath + "/" + microName;
 			if (this.getZooKeeper().exists(zkPath, false) != null) {
 				ZKTools.deleteTree(this.getZooKeeper(), zkPath);

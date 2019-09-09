@@ -16,12 +16,12 @@
             StringBuffer buffer = null;
             if (rootPath != null && rootPath.length() > 0) {
                 buffer = ConsoleManager.getScheduleStrategyManager(request)
-                        .exportConfig(rootPath, confWriter);
+                        .exportConfig(request,rootPath, confWriter,type);
             } else {
                 tmpWriter.write("没有设置导出配置信息的路径");
             }
             // 导出文件
-            if (type != null && type.equals("1")) {
+            if (type != null && (type.equals("1")||type.equals("3"))) {
                 // 导出进行保存
                 if (buffer != null) {
                     response.setContentType("text/plain;charset=GBK");
@@ -55,8 +55,10 @@
                                        name="type" value="1"/> 配置文件路径：<input type="text" name="rootPath"
                                                                              value="<%=rootPath == null ? "" : rootPath%>"
                                                                              style="width:330px;"/>
-    <input type="button" onclick="viewConfig();" value="查看"/> <input
-            type="button" onclick="saveConfig();" value="导出"/>
+    <input type="button" onclick="viewConfig();" value="查看"/> 
+    <input type="button" onclick="saveConfig();" value="导出"/>
+    <input type="button" onclick="microViewConfig();" value="查看所有微服务"/>
+    <input type="button" onclick="microSaveConfig();" value="导出所有微服务"/>
     <pre>
 <%if (errWriter == null || errWriter.getBuffer().length() == 0) { %>
 <%=confWriter%>
@@ -75,6 +77,15 @@
   // 导出配置文件
   function saveConfig() {
     document.getElementById("type").value = "1";
+    document.getElementById("taskTypeForm").submit();
+  }
+  // 导出配置文件
+  function microViewConfig() {
+    document.getElementById("type").value = "2";
+    document.getElementById("taskTypeForm").submit();
+  }
+  function microSaveConfig() {
+    document.getElementById("type").value = "3";
     document.getElementById("taskTypeForm").submit();
   }
 </script>

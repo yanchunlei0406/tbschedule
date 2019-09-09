@@ -2,17 +2,27 @@ package com.taobao.pamirs.schedule.zk;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.taobao.pamirs.schedule.ConsoleManager;
 import com.taobao.pamirs.schedule.strategy.ManagerFactoryInfo;
 import com.taobao.pamirs.schedule.strategy.ScheduleStrategy;
 import com.taobao.pamirs.schedule.strategy.ScheduleStrategyRunntime;
 import com.taobao.pamirs.schedule.strategy.TBScheduleManagerFactory;
+import com.taobao.pamirs.schedule.taskmanager.MicroServer;
+
 import java.io.Writer;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooKeeper;
 
@@ -343,26 +353,47 @@ public class ScheduleStrategyDataManager4ZK {
     /**
      * 输出配置信息【目前备份baseTaskType和strategy数据】
      */
-    public StringBuffer exportConfig(String rootPath, Writer writer) throws Exception {
+    public StringBuffer exportConfig(HttpServletRequest request,String rootPath, Writer writer,String isMicroserver) throws Exception {
+    	Map<String, String> pathMap=new HashMap<>();
+		if (isMicroserver != null && (isMicroserver.equals("2") || isMicroserver.equals("3"))) {
+			List<MicroServer> microList = ConsoleManager.getScheduleMicroserverManager(request).loadAllMicroServer();
+			if (microList.size() == 0) {
+				// 注册微服务数量为0
+				return null;
+			}
+			for (MicroServer micro : microList) {
+				pathMap.put(micro.getMicroName(), micro.getMicroValue());
+			}
+		} else {
+			pathMap.put("指定路径", rootPath);
+		}
         StringBuffer buffer = new StringBuffer();
-        for (String type : new String[]{"baseTaskType", "strategy"}) {
-            if (type.equals("baseTaskType")) {
-                writer.write("<h2>基本任务配置列表：</h2>\n");
-            } else {
-                writer.write("<h2>基本策略配置列表：</h2>\n");
-            }
-            String bTTypePath = rootPath + "/" + type;
-            List<String> fNodeList = getZooKeeper().getChildren(bTTypePath, false);
-            for (int i = 0; i < fNodeList.size(); i++) {
-                String fNode = fNodeList.get(i);
-                ConfigNode configNode = new ConfigNode(rootPath, type, fNode);
-                configNode.setValue(new String(this.getZooKeeper().getData(bTTypePath + "/" + fNode, false, null)));
-                buffer.append(gson.toJson(configNode));
-                buffer.append("\n");
-                writer.write(configNode.toString());
-            }
-            writer.write("\n\n");
-        }
+        Iterator<Entry<String, String>> iterators = pathMap.entrySet().iterator();
+		while (iterators.hasNext()) {
+			Entry<String, String> iterator = iterators.next();
+			String name=iterator.getKey();
+			String path=iterator.getValue(); 
+			writer.write("<font size=3 color='red'><strong>"+name+"  ==  "+path+"</strong></font>\n");
+			for (String type : new String[] { "baseTaskType", "strategy" }) {
+				if (type.equals("baseTaskType")) {
+					writer.write("<h4>基本任务配置列表：</h4>");
+				} else {
+					writer.write("<h4>基本策略配置列表：</h4>");
+				}
+				String bTTypePath = path + "/" + type;
+				List<String> fNodeList = getZooKeeper().getChildren(bTTypePath, false);
+				for (int i = 0; i < fNodeList.size(); i++) {
+					String fNode = fNodeList.get(i);
+					ConfigNode configNode = new ConfigNode(path, type, fNode);
+					configNode.setValue(new String(this.getZooKeeper().getData(bTTypePath + "/" + fNode, false, null)));
+					buffer.append(gson.toJson(configNode));
+					buffer.append("\n");
+					writer.write(configNode.toString());
+				}
+				writer.write("\n\n");
+			}
+		}
+        
         if (buffer.length() > 0) {
             String str = buffer.toString();
             return new StringBuffer(str.substring(0, str.length() - 1));
