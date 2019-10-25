@@ -2,6 +2,7 @@ package com.taobao.pamirs.schedule;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Properties;
@@ -175,9 +176,10 @@ public class ConsoleManager {
 			}
 			// 保存配置信息时，将当前配置信息和会话绑定到一起
 			SessionPool.setSession(request.getSession().getId(), p);
-//            FileWriter writer = new FileWriter(configFile);
-//            p.store(writer, "");
-//            writer.close();
+            //更新文件中的配置信息
+			FileWriter writer = new FileWriter(configFile);
+            p.store(writer, "");
+            writer.close();
 		} catch (Exception ex) {
 			throw new Exception("不能写入配置信息到文件：" + configFile, ex);
 		}
