@@ -103,6 +103,7 @@ class TBScheduleProcessorSleep<T> implements IScheduleProcessor, Runnable {
             this.scheduleManager.getScheduleServer().getTaskType() + "-" + this.scheduleManager.getCurrentSerialNumber()
                 + "-exe" + index;
         thread.setName(threadName);
+        //logger.info("启动线程:{}",Thread.currentThread().getName());
         thread.start();
     }
 

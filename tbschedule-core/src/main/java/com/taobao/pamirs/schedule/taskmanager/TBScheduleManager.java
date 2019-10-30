@@ -13,6 +13,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.apache.commons.logging.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
@@ -123,6 +125,7 @@ abstract class TBScheduleManager implements IStrategyTask {
         this.currenScheduleServer.setManagerFactoryUUID(this.factory.getUuid());
         scheduleCenter.registerScheduleServer(this.currenScheduleServer);
         this.mBeanName = "pamirs:name=" + "schedule.ServerMananger." + this.currenScheduleServer.getUuid();
+        //创建心跳调度,0.5秒后开始，默认每5秒触发一次
         this.heartBeatTimer = new Timer(
             this.currenScheduleServer.getTaskType() + "-" + this.currentSerialNumber + "-HeartBeat");
         this.heartBeatTimer.schedule(new HeartBeatTimerTask(this), new java.util.Date(System.currentTimeMillis() + 500),
@@ -221,6 +224,8 @@ abstract class TBScheduleManager implements IStrategyTask {
             CronExpression cexpStart = new CronExpression(tmpStr);
             Date current = new Date(this.scheduleCenter.getSystemTime());
             Date firstStartTime = cexpStart.getNextValidTimeAfter(current);
+            //第一次执行时间计算触发后
+            //在Timer中自行计算下次开始时间，并调度
             this.heartBeatTimer.schedule(
                 new PauseOrResumeScheduleTask(this, this.heartBeatTimer, PauseOrResumeScheduleTask.TYPE_RESUME, tmpStr),
                 firstStartTime);
@@ -238,6 +243,8 @@ abstract class TBScheduleManager implements IStrategyTask {
                         isRunNow = true;
                         firstEndTime = nowEndTime;
                     }
+                    //第一次暂停时间计算触发后
+                    //在Timer中自行计算下次暂停时间，并调度
                     this.heartBeatTimer.schedule(
                         new PauseOrResumeScheduleTask(this, this.heartBeatTimer, PauseOrResumeScheduleTask.TYPE_PAUSE,
                             tmpEndStr), firstEndTime);
@@ -436,9 +443,11 @@ class PauseOrResumeScheduleTask extends java.util.TimerTask {
             CronExpression cexp = new CronExpression(this.cronTabExpress);
             Date nextTime = cexp.getNextValidTimeAfter(current);
             if (this.type == TYPE_PAUSE) {
+            	//log.info("到达终止时间,pause调度,current= {} ,nextTime = {}",current,nextTime);
                 manager.pause("到达终止时间,pause调度");
                 this.manager.getScheduleServer().setNextRunEndTime(ScheduleUtil.transferDataToString(nextTime));
             } else {
+            	//log.info("到达开始时间,resume调度,current= {} ,nextTime = {}",current,nextTime);
                 manager.resume("到达开始时间,resume调度");
                 this.manager.getScheduleServer().setNextRunStartTime(ScheduleUtil.transferDataToString(nextTime));
             }
