@@ -193,7 +193,7 @@ class TBScheduleProcessorSleep<T> implements IScheduleProcessor, Runnable {
     }
 
     @Override
-    @SuppressWarnings({"rawtypes", "unchecked", "static-access"})
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void run() {
         try {
             long startTime = 0;

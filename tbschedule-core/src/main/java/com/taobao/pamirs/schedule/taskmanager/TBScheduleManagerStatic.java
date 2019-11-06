@@ -41,7 +41,6 @@ public class TBScheduleManagerStatic extends TBScheduleManager {
     public void initial() {
         new Thread(this.currenScheduleServer.getTaskType() + "-" + this.currentSerialNumber + "-StartProcess") {
             @Override
-            @SuppressWarnings("static-access")
             public void run() {
                 try {
                     log.info("开始获取调度任务队列...... of " + currenScheduleServer.getUuid());
@@ -108,6 +107,7 @@ public class TBScheduleManagerStatic extends TBScheduleManager {
     @Override
     public void refreshScheduleServerInfo() throws Exception {
         try {
+			// log.info("定时更新心跳信息");
             rewriteScheduleInfo();
             // 如果任务信息没有初始化成功，不做任务相关的处理
             if (this.isRuntimeInfoInitial == false) {
