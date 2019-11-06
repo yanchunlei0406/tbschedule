@@ -1,23 +1,23 @@
 package com.taobao.pamirs.schedule.taskmanager;
 
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.taobao.pamirs.schedule.CronExpression;
 import com.taobao.pamirs.schedule.IScheduleTaskDeal;
 import com.taobao.pamirs.schedule.ScheduleUtil;
 import com.taobao.pamirs.schedule.TaskItemDefine;
 import com.taobao.pamirs.schedule.strategy.IStrategyTask;
 import com.taobao.pamirs.schedule.strategy.TBScheduleManagerFactory;
-import java.util.Date;
-import java.util.List;
-import java.util.Timer;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.commons.logging.Log;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.core.annotation.Order;
 
 /**
  * 1、任务调度分配器的目标： 让所有的任务不重复，不遗漏的被快速处理。 2、一个Manager只管理一种任务类型的一组工作线程。 3、在一个JVM里面可能存在多个处理相同任务类型的Manager，也可能存在处理不同任务类型的Manager。
@@ -78,7 +78,7 @@ abstract class TBScheduleManager implements IStrategyTask {
     /**
      * 向配置中心更新信息的定时器
      */
-    private Timer heartBeatTimer;
+    private ScheduledThreadPoolExecutor heartBeatTimer = new ScheduledThreadPoolExecutor(2);
 
     protected IScheduleDataManager scheduleCenter;
 
@@ -126,10 +126,8 @@ abstract class TBScheduleManager implements IStrategyTask {
         scheduleCenter.registerScheduleServer(this.currenScheduleServer);
         this.mBeanName = "pamirs:name=" + "schedule.ServerMananger." + this.currenScheduleServer.getUuid();
         //创建心跳调度,0.5秒后开始，默认每5秒触发一次
-        this.heartBeatTimer = new Timer(
-            this.currenScheduleServer.getTaskType() + "-" + this.currentSerialNumber + "-HeartBeat");
-        this.heartBeatTimer.schedule(new HeartBeatTimerTask(this), new java.util.Date(System.currentTimeMillis() + 500),
-            this.taskTypeInfo.getHeartBeatRate());
+        this.heartBeatTimer.scheduleWithFixedDelay(new HeartBeatTimerTask(this), 
+        	500, this.taskTypeInfo.getHeartBeatRate(), TimeUnit.MILLISECONDS);
         initial();
     }
 
@@ -222,13 +220,13 @@ abstract class TBScheduleManager implements IStrategyTask {
                 tmpStr = tmpStr.substring("startrun:".length());
             }
             CronExpression cexpStart = new CronExpression(tmpStr);
-            Date current = new Date(this.scheduleCenter.getSystemTime());
-            Date firstStartTime = cexpStart.getNextValidTimeAfter(current);
-            //第一次执行时间计算触发后
-            //在Timer中自行计算下次开始时间，并调度
-            this.heartBeatTimer.schedule(
-                new PauseOrResumeScheduleTask(this, this.heartBeatTimer, PauseOrResumeScheduleTask.TYPE_RESUME, tmpStr),
-                firstStartTime);
+			Long currentTime = this.scheduleCenter.getSystemTime();
+			Date current = new Date(currentTime);
+			Date firstStartTime = cexpStart.getNextValidTimeAfter(current);
+            //第一次执行时间计算触发后,在Timer中自行计算下次开始时间，并调度
+			this.heartBeatTimer.schedule(
+					new PauseOrResumeScheduleTask(this, PauseOrResumeScheduleTask.TYPE_RESUME, tmpStr),
+					firstStartTime.getTime() - currentTime, TimeUnit.MILLISECONDS);
             this.currenScheduleServer.setNextRunStartTime(ScheduleUtil.transferDataToString(firstStartTime));
             if (this.taskTypeInfo.getPermitRunEndTime() == null || this.taskTypeInfo.getPermitRunEndTime()
                 .equals("-1")) {
@@ -243,11 +241,10 @@ abstract class TBScheduleManager implements IStrategyTask {
                         isRunNow = true;
                         firstEndTime = nowEndTime;
                     }
-                    //第一次暂停时间计算触发后
-                    //在Timer中自行计算下次暂停时间，并调度
-                    this.heartBeatTimer.schedule(
-                        new PauseOrResumeScheduleTask(this, this.heartBeatTimer, PauseOrResumeScheduleTask.TYPE_PAUSE,
-                            tmpEndStr), firstEndTime);
+                    //第一次暂停时间计算触发后,在Timer中自行计算下次暂停时间，并调度
+					this.heartBeatTimer.schedule(
+							new PauseOrResumeScheduleTask(this, PauseOrResumeScheduleTask.TYPE_PAUSE, tmpEndStr),
+							firstEndTime.getTime() - currentTime, TimeUnit.MILLISECONDS);
                     this.currenScheduleServer.setNextRunEndTime(ScheduleUtil.transferDataToString(firstEndTime));
                 } catch (Exception e) {
                     log.error("计算第一次执行时间出现异常:" + currenScheduleServer.getUuid(), e);
@@ -364,7 +361,7 @@ abstract class TBScheduleManager implements IStrategyTask {
             }
             this.isStopSchedule = true;
             // 取消心跳TIMER
-            this.heartBeatTimer.cancel();
+            this.heartBeatTimer.shutdown();
             // 从配置中心注销自己
             this.scheduleCenter
                 .unRegisterScheduleServer(this.currenScheduleServer.getTaskType(), this.currenScheduleServer.getUuid());
@@ -423,17 +420,15 @@ class PauseOrResumeScheduleTask extends java.util.TimerTask {
     public static int TYPE_PAUSE = 1;
     public static int TYPE_RESUME = 2;
     TBScheduleManager manager;
-    Timer timer;
+    ScheduledThreadPoolExecutor timer=new ScheduledThreadPoolExecutor(2);
     int type;
     String cronTabExpress;
-
-    public PauseOrResumeScheduleTask(TBScheduleManager aManager, Timer aTimer, int aType, String aCronTabExpress) {
+    
+    public PauseOrResumeScheduleTask(TBScheduleManager aManager,  int aType, String aCronTabExpress) {
         this.manager = aManager;
-        this.timer = aTimer;
         this.type = aType;
         this.cronTabExpress = aCronTabExpress;
     }
-
     @Override
     public void run() {
         try {
@@ -451,8 +446,7 @@ class PauseOrResumeScheduleTask extends java.util.TimerTask {
                 manager.resume("到达开始时间,resume调度");
                 this.manager.getScheduleServer().setNextRunStartTime(ScheduleUtil.transferDataToString(nextTime));
             }
-            this.timer.schedule(new PauseOrResumeScheduleTask(this.manager, this.timer, this.type, this.cronTabExpress),
-                nextTime);
+            timer.schedule(new PauseOrResumeScheduleTask(this.manager, this.type, this.cronTabExpress), nextTime.getTime()-System.currentTimeMillis(), TimeUnit.MILLISECONDS);
         } catch (Throwable ex) {
             log.error(ex.getMessage(), ex);
         }

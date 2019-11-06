@@ -1,5 +1,22 @@
 package com.taobao.pamirs.schedule.strategy;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.apache.zookeeper.ZooKeeper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+
 import com.taobao.pamirs.schedule.ConsoleManager;
 import com.taobao.pamirs.schedule.IScheduleTaskDeal;
 import com.taobao.pamirs.schedule.ScheduleUtil;
@@ -9,20 +26,6 @@ import com.taobao.pamirs.schedule.zk.ScheduleDataManager4ZK;
 import com.taobao.pamirs.schedule.zk.ScheduleMicroserverDataManager4ZK;
 import com.taobao.pamirs.schedule.zk.ScheduleStrategyDataManager4ZK;
 import com.taobao.pamirs.schedule.zk.ZKManager;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Timer;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import org.apache.zookeeper.ZooKeeper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 
 /**
  * 调度服务器构造器
@@ -41,9 +44,13 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
      * 是否启动调度管理，如果只是做系统管理，应该设置为false
      */
     public boolean start = true;
+    
     private int timerInterval = 2000;
+    
     /**
-     * ManagerFactoryTimerTask上次执行的时间戳。<br/> zk环境不稳定，可能导致所有task自循环丢失，调度停止。<br/> 外层应用，通过jmx暴露心跳时间，监控这个tbschedule最重要的大循环。<br/>
+     * ManagerFactoryTimerTask上次执行的时间戳。<br/> 
+     * zk环境不稳定，可能导致所有task自循环丢失，调度停止。<br/> 
+     * 外层应用，通过jmx暴露心跳时间，监控这个tbschedule最重要的大循环。<br/>
      */
     public volatile long timerTaskHeartBeatTS = System.currentTimeMillis();
 
@@ -60,8 +67,8 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     private String uuid;
     private String ip;
     private String hostName;
-
-    private Timer timer;
+    
+    private ScheduledThreadPoolExecutor timer;
     private ManagerFactoryTimerTask timerTask;
     protected Lock lock = new ReentrantLock();
 
@@ -123,11 +130,12 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             // 注册调度管理器
             this.scheduleStrategyManager.registerManagerFactory(this);
             if (timer == null) {
-                timer = new Timer("TBScheduleManagerFactory-Timer");
+            	timer = new ScheduledThreadPoolExecutor(2);
             }
             if (timerTask == null) {
                 timerTask = new ManagerFactoryTimerTask(this);
-                timer.schedule(timerTask, 2000, this.timerInterval);
+                //延时两秒，
+                timer.schedule(timerTask, this.timerInterval, TimeUnit.MILLISECONDS);
             }
         }
     }
@@ -256,8 +264,9 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
                 IStrategyTask result = this.createStrategyTask(strategy);
                 if (null == result) {
                     logger.error("strategy 对应的配置有问题。strategy name=" + strategy.getStrategyName());
-                }
-                list.add(result);
+				} else {
+					list.add(result);
+				}
             }
         }
     }
@@ -309,7 +318,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
                     this.timerTask.cancel();
                     this.timerTask = null;
                 }
-                this.timer.cancel();
+                this.timer.shutdown();
                 this.timer = null;
             }
             this.stopServer(null);
@@ -484,6 +493,7 @@ class InitialThread extends Thread {
 
     @Override
     public void run() {
+    	boolean needRestart = false;
         facotry.lock.lock();
         try {
             int count = 0;
@@ -500,13 +510,32 @@ class InitialThread extends Thread {
                     return;
                 }
             }
+            if (this.isStop == true) {
+                return;
+            }
             facotry.initialData();
         } catch (Throwable e) {
             log.error(e.getMessage(), e);
+            /**
+             * 这里一般意味着initialData()出错
+             * check成功但初始化失败，说明连接又出问题了，这里继续重试重启状态
+             */
+            needRestart = true;
         } finally {
-            facotry.lock.unlock();
+        	facotry.lock.unlock();
         }
-
-    }
-
+		while (needRestart) {
+			log.error("初始化线程异常，准备重启过程.....");
+			try {
+				facotry.reStart();
+				needRestart = false;
+			} catch (Exception e) {
+				log.error(e.getMessage(), e);
+				try {
+					sleep(20);
+				} catch (InterruptedException e1) {
+				}
+			}
+		}
+	}
 }
