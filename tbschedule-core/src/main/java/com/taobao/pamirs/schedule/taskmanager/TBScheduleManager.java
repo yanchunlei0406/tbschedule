@@ -30,7 +30,7 @@ import com.taobao.pamirs.schedule.strategy.TBScheduleManagerFactory;
  *
  * @author xuannan
  */
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings({ "rawtypes", "unchecked" })
 abstract class TBScheduleManager implements IStrategyTask {
 
     private static transient Logger log = LoggerFactory.getLogger(TBScheduleManager.class);
@@ -94,16 +94,14 @@ abstract class TBScheduleManager implements IStrategyTask {
 
     TBScheduleManagerFactory factory;
 
-    TBScheduleManager(TBScheduleManagerFactory aFactory, String baseTaskType, String ownSign,
-        IScheduleDataManager aScheduleCenter) throws Exception {
+    TBScheduleManager(TBScheduleManagerFactory aFactory, String baseTaskType, String ownSign, IScheduleDataManager aScheduleCenter) throws Exception {
         this.factory = aFactory;
         this.currentSerialNumber = serialNumber();
         this.scheduleCenter = aScheduleCenter;
         this.taskTypeInfo = this.scheduleCenter.loadTaskTypeBaseInfo(baseTaskType);
         log.info("create TBScheduleManager for taskType:" + baseTaskType);
         // 清除已经过期1天的TASK,OWN_SIGN的组合。超过一天没有活动server的视为过期
-        this.scheduleCenter.clearExpireTaskTypeRunningInfo(baseTaskType, ScheduleUtil.getLocalIP() + "清除过期OWN_SIGN信息",
-            this.taskTypeInfo.getExpireOwnSignInterval());
+        this.scheduleCenter.clearExpireTaskTypeRunningInfo(baseTaskType, ScheduleUtil.getLocalIP() + "清除过期OWN_SIGN信息", this.taskTypeInfo.getExpireOwnSignInterval());
 
         Object dealBean = aFactory.getBean(this.taskTypeInfo.getDealBeanName());
         if (dealBean == null) {
@@ -115,19 +113,15 @@ abstract class TBScheduleManager implements IStrategyTask {
         this.taskDealBean = (IScheduleTaskDeal) dealBean;
 
         if (this.taskTypeInfo.getJudgeDeadInterval() < this.taskTypeInfo.getHeartBeatRate() * 5) {
-            throw new Exception(
-                "数据配置存在问题，死亡的时间间隔，至少要大于心跳线程的5倍。当前配置数据：JudgeDeadInterval = " + this.taskTypeInfo.getJudgeDeadInterval()
-                    + ",HeartBeatRate = "
+            throw new Exception("数据配置存在问题，死亡的时间间隔，至少要大于心跳线程的5倍。当前配置数据：JudgeDeadInterval = " + this.taskTypeInfo.getJudgeDeadInterval() + ",HeartBeatRate = "
                     + this.taskTypeInfo.getHeartBeatRate());
         }
-        this.currenScheduleServer = ScheduleServer
-            .createScheduleServer(this.scheduleCenter, baseTaskType, ownSign, this.taskTypeInfo.getThreadNumber());
+        this.currenScheduleServer = ScheduleServer.createScheduleServer(this.scheduleCenter, baseTaskType, ownSign, this.taskTypeInfo.getThreadNumber());
         this.currenScheduleServer.setManagerFactoryUUID(this.factory.getUuid());
         scheduleCenter.registerScheduleServer(this.currenScheduleServer);
         this.mBeanName = "pamirs:name=" + "schedule.ServerMananger." + this.currenScheduleServer.getUuid();
         //创建心跳调度,0.5秒后开始，默认每5秒触发一次
-        this.heartBeatTimer.scheduleWithFixedDelay(new HeartBeatTimerTask(this), 
-        	500, this.taskTypeInfo.getHeartBeatRate(), TimeUnit.MILLISECONDS);
+        this.heartBeatTimer.scheduleWithFixedDelay(new HeartBeatTimerTask(this), 500, this.taskTypeInfo.getHeartBeatRate(), TimeUnit.MILLISECONDS);
         initial();
     }
 
@@ -189,8 +183,7 @@ abstract class TBScheduleManager implements IStrategyTask {
             }
             // 先发送心跳信息
             if (startErrorInfo == null) {
-                this.currenScheduleServer
-                    .setDealInfoDesc(this.pauseMessage + ":" + this.statisticsInfo.getDealDescription());
+                this.currenScheduleServer.setDealInfoDesc(this.pauseMessage + ":" + this.statisticsInfo.getDealDescription());
             } else {
                 this.currenScheduleServer.setDealInfoDesc(startErrorInfo);
             }
@@ -220,16 +213,14 @@ abstract class TBScheduleManager implements IStrategyTask {
                 tmpStr = tmpStr.substring("startrun:".length());
             }
             CronExpression cexpStart = new CronExpression(tmpStr);
-			Long currentTime = this.scheduleCenter.getSystemTime();
-			Date current = new Date(currentTime);
-			Date firstStartTime = cexpStart.getNextValidTimeAfter(current);
+            Long currentTime = this.scheduleCenter.getSystemTime();
+            Date current = new Date(currentTime);
+            Date firstStartTime = cexpStart.getNextValidTimeAfter(current);
             //第一次执行时间计算触发后,在Timer中自行计算下次开始时间，并调度
-			this.heartBeatTimer.schedule(
-					new PauseOrResumeScheduleTask(this, PauseOrResumeScheduleTask.TYPE_RESUME, tmpStr),
-					firstStartTime.getTime() - currentTime, TimeUnit.MILLISECONDS);
+            this.heartBeatTimer.schedule(new PauseOrResumeScheduleTask(this, PauseOrResumeScheduleTask.TYPE_RESUME, tmpStr), firstStartTime.getTime() - currentTime,
+                    TimeUnit.MILLISECONDS);
             this.currenScheduleServer.setNextRunStartTime(ScheduleUtil.transferDataToString(firstStartTime));
-            if (this.taskTypeInfo.getPermitRunEndTime() == null || this.taskTypeInfo.getPermitRunEndTime()
-                .equals("-1")) {
+            if (this.taskTypeInfo.getPermitRunEndTime() == null || this.taskTypeInfo.getPermitRunEndTime().equals("-1")) {
                 this.currenScheduleServer.setNextRunEndTime("当不能获取到数据的时候pause");
             } else {
                 try {
@@ -242,9 +233,8 @@ abstract class TBScheduleManager implements IStrategyTask {
                         firstEndTime = nowEndTime;
                     }
                     //第一次暂停时间计算触发后,在Timer中自行计算下次暂停时间，并调度
-					this.heartBeatTimer.schedule(
-							new PauseOrResumeScheduleTask(this, PauseOrResumeScheduleTask.TYPE_PAUSE, tmpEndStr),
-							firstEndTime.getTime() - currentTime, TimeUnit.MILLISECONDS);
+                    this.heartBeatTimer.schedule(new PauseOrResumeScheduleTask(this, PauseOrResumeScheduleTask.TYPE_PAUSE, tmpEndStr), firstEndTime.getTime() - currentTime,
+                            TimeUnit.MILLISECONDS);
                     this.currenScheduleServer.setNextRunEndTime(ScheduleUtil.transferDataToString(firstEndTime));
                 } catch (Exception e) {
                     log.error("计算第一次执行时间出现异常:" + currenScheduleServer.getUuid(), e);
@@ -274,8 +264,7 @@ abstract class TBScheduleManager implements IStrategyTask {
     public boolean isPauseWhenNoData() {
         // 如果还没有分配到任务队列则不能退出
         if (this.currentTaskItemList.size() > 0 && this.taskTypeInfo.getPermitRunStartTime() != null) {
-            if (this.taskTypeInfo.getPermitRunEndTime() == null || this.taskTypeInfo.getPermitRunEndTime()
-                .equals("-1")) {
+            if (this.taskTypeInfo.getPermitRunEndTime() == null || this.taskTypeInfo.getPermitRunEndTime().equals("-1")) {
                 return true;
             } else {
                 return false;
@@ -293,8 +282,7 @@ abstract class TBScheduleManager implements IStrategyTask {
             this.isPauseSchedule = true;
             this.pauseMessage = message;
             if (log.isDebugEnabled()) {
-                log.debug(
-                    "暂停调度 ：" + this.currenScheduleServer.getUuid() + ":" + this.statisticsInfo.getDealDescription());
+                log.debug("暂停调度 ：" + this.currenScheduleServer.getUuid() + ":" + this.statisticsInfo.getDealDescription());
             }
             if (this.processor != null) {
                 this.processor.stopSchedule();
@@ -314,8 +302,7 @@ abstract class TBScheduleManager implements IStrategyTask {
             this.isPauseSchedule = false;
             this.pauseMessage = message;
             if (this.taskDealBean != null) {
-                if (this.taskTypeInfo.getProcessorType() != null
-                    && this.taskTypeInfo.getProcessorType().equalsIgnoreCase("NOTSLEEP") == true) {
+                if (this.taskTypeInfo.getProcessorType() != null && this.taskTypeInfo.getProcessorType().equalsIgnoreCase("NOTSLEEP") == true) {
                     this.taskTypeInfo.setProcessorType("NOTSLEEP");
                     this.processor = new TBScheduleProcessorNotSleep(this, taskDealBean, this.statisticsInfo);
                 } else {
@@ -363,8 +350,7 @@ abstract class TBScheduleManager implements IStrategyTask {
             // 取消心跳TIMER
             this.heartBeatTimer.shutdown();
             // 从配置中心注销自己
-            this.scheduleCenter
-                .unRegisterScheduleServer(this.currenScheduleServer.getTaskType(), this.currenScheduleServer.getUuid());
+            this.scheduleCenter.unRegisterScheduleServer(this.currenScheduleServer.getTaskType(), this.currenScheduleServer.getUuid());
         } finally {
             registerLock.unlock();
         }
@@ -420,15 +406,16 @@ class PauseOrResumeScheduleTask extends java.util.TimerTask {
     public static int TYPE_PAUSE = 1;
     public static int TYPE_RESUME = 2;
     TBScheduleManager manager;
-    ScheduledThreadPoolExecutor timer=new ScheduledThreadPoolExecutor(2);
+    ScheduledThreadPoolExecutor timer = new ScheduledThreadPoolExecutor(2);
     int type;
     String cronTabExpress;
-    
-    public PauseOrResumeScheduleTask(TBScheduleManager aManager,  int aType, String aCronTabExpress) {
+
+    public PauseOrResumeScheduleTask(TBScheduleManager aManager, int aType, String aCronTabExpress) {
         this.manager = aManager;
         this.type = aType;
         this.cronTabExpress = aCronTabExpress;
     }
+
     @Override
     public void run() {
         try {
@@ -438,15 +425,15 @@ class PauseOrResumeScheduleTask extends java.util.TimerTask {
             CronExpression cexp = new CronExpression(this.cronTabExpress);
             Date nextTime = cexp.getNextValidTimeAfter(current);
             if (this.type == TYPE_PAUSE) {
-            	//log.info("到达终止时间,pause调度,current= {} ,nextTime = {}",current,nextTime);
+                //log.info("到达终止时间,pause调度,current= {} ,nextTime = {}",current,nextTime);
                 manager.pause("到达终止时间,pause调度");
                 this.manager.getScheduleServer().setNextRunEndTime(ScheduleUtil.transferDataToString(nextTime));
             } else {
-            	//log.info("到达开始时间,resume调度,current= {} ,nextTime = {}",current,nextTime);
+                //log.info("到达开始时间,resume调度,current= {} ,nextTime = {}",current,nextTime);
                 manager.resume("到达开始时间,resume调度");
                 this.manager.getScheduleServer().setNextRunStartTime(ScheduleUtil.transferDataToString(nextTime));
             }
-            timer.schedule(new PauseOrResumeScheduleTask(this.manager, this.type, this.cronTabExpress), nextTime.getTime()-System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+            timer.schedule(new PauseOrResumeScheduleTask(this.manager, this.type, this.cronTabExpress), nextTime.getTime() - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
         } catch (Throwable ex) {
             log.error(ex.getMessage(), ex);
         }
@@ -508,9 +495,8 @@ class StatisticsInfo {
     }
 
     public String getDealDescription() {
-        return "FetchDataCount=" + this.fetchDataCount + ",FetchDataNum=" + this.fetchDataNum + ",DealDataSucess="
-            + this.dealDataSucess + ",DealDataFail=" + this.dealDataFail
-            + ",DealSpendTime=" + this.dealSpendTime + ",otherCompareCount=" + this.otherCompareCount;
+        return "FetchDataCount=" + this.fetchDataCount + ",FetchDataNum=" + this.fetchDataNum + ",DealDataSucess=" + this.dealDataSucess + ",DealDataFail=" + this.dealDataFail
+                + ",DealSpendTime=" + this.dealSpendTime + ",otherCompareCount=" + this.otherCompareCount;
     }
 
 }

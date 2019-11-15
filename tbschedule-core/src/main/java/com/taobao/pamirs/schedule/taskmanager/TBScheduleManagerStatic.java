@@ -1,15 +1,16 @@
 package com.taobao.pamirs.schedule.taskmanager;
 
-import com.taobao.pamirs.schedule.TaskItemDefine;
-import com.taobao.pamirs.schedule.strategy.TBScheduleManagerFactory;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TBScheduleManagerStatic extends TBScheduleManager {
+import com.taobao.pamirs.schedule.TaskItemDefine;
+import com.taobao.pamirs.schedule.strategy.TBScheduleManagerFactory;
 
+public class TBScheduleManagerStatic extends TBScheduleManager {
     private static transient Logger log = LoggerFactory.getLogger(TBScheduleManagerStatic.class);
     /**
      * 总的任务数量
@@ -20,20 +21,17 @@ public class TBScheduleManagerStatic extends TBScheduleManager {
 
     private final Object NeedReloadTaskItemLock = new Object();
 
-    public TBScheduleManagerStatic(TBScheduleManagerFactory aFactory, String baseTaskType, String ownSign,
-        IScheduleDataManager aScheduleCenter) throws Exception {
+    public TBScheduleManagerStatic(TBScheduleManagerFactory aFactory, String baseTaskType, String ownSign, IScheduleDataManager aScheduleCenter) throws Exception {
         super(aFactory, baseTaskType, ownSign, aScheduleCenter);
     }
 
     public void initialRunningInfo() throws Exception {
-        scheduleCenter.clearExpireScheduleServer(this.currenScheduleServer.getTaskType(),
-            this.taskTypeInfo.getJudgeDeadInterval());
+        scheduleCenter.clearExpireScheduleServer(this.currenScheduleServer.getTaskType(), this.taskTypeInfo.getJudgeDeadInterval());
         List<String> list = scheduleCenter.loadScheduleServerNames(this.currenScheduleServer.getTaskType());
         if (scheduleCenter.isLeader(this.currenScheduleServer.getUuid(), list)) {
             // 是第一次启动，先清楚所有的垃圾数据
             log.debug(this.currenScheduleServer.getUuid() + ":" + list.size());
-            this.scheduleCenter.initialRunningInfo4Static(this.currenScheduleServer.getBaseTaskType(),
-                this.currenScheduleServer.getOwnSign(), this.currenScheduleServer.getUuid());
+            this.scheduleCenter.initialRunningInfo4Static(this.currenScheduleServer.getBaseTaskType(), this.currenScheduleServer.getOwnSign(), this.currenScheduleServer.getUuid());
         }
     }
 
@@ -53,9 +51,7 @@ public class TBScheduleManagerStatic extends TBScheduleManager {
                         // isRuntimeInfoInitial);
                         try {
                             initialRunningInfo();
-                            isRuntimeInfoInitial = scheduleCenter
-                                .isInitialRunningInfoSucuss(currenScheduleServer.getBaseTaskType(),
-                                    currenScheduleServer.getOwnSign());
+                            isRuntimeInfoInitial = scheduleCenter.isInitialRunningInfoSucuss(currenScheduleServer.getBaseTaskType(), currenScheduleServer.getOwnSign());
                         } catch (Throwable e) {
                             // 忽略初始化的异常
                             log.error(e.getMessage(), e);
@@ -107,7 +103,7 @@ public class TBScheduleManagerStatic extends TBScheduleManager {
     @Override
     public void refreshScheduleServerInfo() throws Exception {
         try {
-			// log.info("定时更新心跳信息");
+            // log.info("定时更新心跳信息");
             rewriteScheduleInfo();
             // 如果任务信息没有初始化成功，不做任务相关的处理
             if (this.isRuntimeInfoInitial == false) {
@@ -147,8 +143,7 @@ public class TBScheduleManagerStatic extends TBScheduleManager {
      * 在leader重新分配任务，在每个server释放原来占有的任务项时，都会修改这个版本号
      */
     public boolean isNeedReLoadTaskItemList() throws Exception {
-        return this.lastFetchVersion < this.scheduleCenter
-            .getReloadTaskItemFlag(this.currenScheduleServer.getTaskType());
+        return this.lastFetchVersion < this.scheduleCenter.getReloadTaskItemFlag(this.currenScheduleServer.getTaskType());
     }
 
     /**
@@ -173,8 +168,7 @@ public class TBScheduleManagerStatic extends TBScheduleManager {
      * 1、获取任务状态的版本号 2、获取所有的服务器注册信息和任务队列信息 3、清除已经超过心跳周期的服务器注册信息 3、重新计算任务分配 4、更新任务状态的版本号【乐观锁】 5、根系任务队列的分配信息
      */
     public void assignScheduleTask() throws Exception {
-        scheduleCenter.clearExpireScheduleServer(this.currenScheduleServer.getTaskType(),
-            this.taskTypeInfo.getJudgeDeadInterval());
+        scheduleCenter.clearExpireScheduleServer(this.currenScheduleServer.getTaskType(), this.taskTypeInfo.getJudgeDeadInterval());
         List<String> serverList = scheduleCenter.loadScheduleServerNames(this.currenScheduleServer.getTaskType());
 
         if (scheduleCenter.isLeader(this.currenScheduleServer.getUuid(), serverList) == false) {
@@ -184,12 +178,10 @@ public class TBScheduleManagerStatic extends TBScheduleManager {
             return;
         }
         // 设置初始化成功标准，避免在leader转换的时候，新增的线程组初始化失败
-        scheduleCenter.setInitialRunningInfoSucuss(this.currenScheduleServer.getBaseTaskType(),
-            this.currenScheduleServer.getTaskType(), this.currenScheduleServer.getUuid());
+        scheduleCenter.setInitialRunningInfoSucuss(this.currenScheduleServer.getBaseTaskType(), this.currenScheduleServer.getTaskType(), this.currenScheduleServer.getUuid());
         scheduleCenter.clearTaskItem(this.currenScheduleServer.getTaskType(), serverList);
-        scheduleCenter
-            .assignTaskItem(this.currenScheduleServer.getTaskType(), this.currenScheduleServer.getUuid(),
-                this.taskTypeInfo.getMaxTaskItemsOfOneThreadGroup(), serverList);
+        scheduleCenter.assignTaskItem(this.currenScheduleServer.getTaskType(), this.currenScheduleServer.getUuid(), this.taskTypeInfo.getMaxTaskItemsOfOneThreadGroup(),
+                serverList);
     }
 
     /**
@@ -231,8 +223,7 @@ public class TBScheduleManagerStatic extends TBScheduleManager {
         // 如果已经稳定了，理论上不需要加载去扫描所有的叶子结点
         // 20151019 by kongxuan.zlj
         try {
-            Map<String, Stat> statMap = this.scheduleCenter
-                .getCurrentServerStatList(this.currenScheduleServer.getTaskType());
+            Map<String, Stat> statMap = this.scheduleCenter.getCurrentServerStatList(this.currenScheduleServer.getTaskType());
             // server下面的机器节点的运行时环境是否在刷新，如果
             isExistZombieServ(this.currenScheduleServer.getTaskType(), statMap);
         } catch (Exception e) {
@@ -241,22 +232,17 @@ public class TBScheduleManagerStatic extends TBScheduleManager {
 
         // 获取最新的版本号
         this.lastFetchVersion = this.scheduleCenter.getReloadTaskItemFlag(this.currenScheduleServer.getTaskType());
-        log.debug(
-            " this.currenScheduleServer.getTaskType()=" + this.currenScheduleServer.getTaskType() + ",  need reload="
-                + isNeedReloadTaskItem);
+        log.debug(" this.currenScheduleServer.getTaskType()=" + this.currenScheduleServer.getTaskType() + ",  need reload=" + isNeedReloadTaskItem);
         try {
             // 是否被人申请的队列
-            this.scheduleCenter
-                .releaseDealTaskItem(this.currenScheduleServer.getTaskType(), this.currenScheduleServer.getUuid());
+            this.scheduleCenter.releaseDealTaskItem(this.currenScheduleServer.getTaskType(), this.currenScheduleServer.getUuid());
             // 重新查询当前服务器能够处理的队列
             // 为了避免在休眠切换的过程中出现队列瞬间的不一致，先清除内存中的队列
             this.currentTaskItemList.clear();
-            this.currentTaskItemList = this.scheduleCenter
-                .reloadDealTaskItem(this.currenScheduleServer.getTaskType(), this.currenScheduleServer.getUuid());
+            this.currentTaskItemList = this.scheduleCenter.reloadDealTaskItem(this.currenScheduleServer.getTaskType(), this.currenScheduleServer.getUuid());
 
             // 如果超过20个心跳周期还没有获取到调度队列，则报警
-            if (this.currentTaskItemList.size() == 0 && scheduleCenter.getSystemTime() - this.lastReloadTaskItemListTime
-                > this.taskTypeInfo.getHeartBeatRate() * 20) {
+            if (this.currentTaskItemList.size() == 0 && scheduleCenter.getSystemTime() - this.lastReloadTaskItemListTime > this.taskTypeInfo.getHeartBeatRate() * 20) {
                 StringBuffer buf = new StringBuffer();
                 buf.append("调度服务器");
                 buf.append(this.currenScheduleServer.getUuid());

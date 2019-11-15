@@ -4,31 +4,27 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 public class ZKTools {
 
-    public static void createPath(ZooKeeper zk, String path, CreateMode createMode, List<ACL> acl) throws Exception {
-        String[] list = path.split("/");
-        String zkPath = "";
-        for (String str : list) {
-            if (str.equals("") == false) {
-                zkPath = zkPath + "/" + str;
-                if (zk.exists(zkPath, false) == null) {
-                    zk.create(zkPath, null, acl, createMode);
-                }
-            }
-        }
+    public static void createPath(CuratorFramework zk, String path, CreateMode createMode, List<ACL> acl) throws Exception {
+        zk.create().creatingParentsIfNeeded().withMode(createMode).withACL(acl).forPath(path, null);
     }
 
-    public static void printTree(ZooKeeper zk, String path, Writer writer, String lineSplitChar) throws Exception {
+    public static String createPath(CuratorFramework zk, String path, byte[] date, List<ACL> acl, CreateMode createMode) throws Exception {
+        return zk.create().creatingParentsIfNeeded().withMode(createMode).withACL(acl).forPath(path, date);
+    }
+
+    public static void printTree(CuratorFramework zk, String path, Writer writer, String lineSplitChar) throws Exception {
         String[] list = getTree(zk, path);
         Stat stat = new Stat();
         for (String name : list) {
-            byte[] value = zk.getData(name, false, stat);
+            byte[] value = zk.getData().storingStatIn(stat).forPath(name);
             if (value == null) {
                 writer.write(name + lineSplitChar);
             } else {
@@ -37,15 +33,12 @@ public class ZKTools {
         }
     }
 
-    public static void deleteTree(ZooKeeper zk, String path) throws Exception {
-        String[] list = getTree(zk, path);
-        for (int i = list.length - 1; i >= 0; i--) {
-            zk.delete(list[i], -1);
-        }
+    public static void deleteTree(CuratorFramework zk, String path) throws Exception {
+        zk.delete().deletingChildrenIfNeeded().forPath(path);
     }
 
-    public static String[] getTree(ZooKeeper zk, String path) throws Exception {
-        if (zk.exists(path, false) == null) {
+    public static String[] getTree(CuratorFramework zk, String path) throws Exception {
+        if (zk.checkExists().forPath(path) == null) {
             return new String[0];
         }
         List<String> dealList = new ArrayList<String>();
@@ -53,7 +46,7 @@ public class ZKTools {
         int index = 0;
         while (index < dealList.size()) {
             String tempPath = dealList.get(index);
-            List<String> children = zk.getChildren(tempPath, false);
+            List<String> children = zk.getChildren().forPath(tempPath);
             if (tempPath.equalsIgnoreCase("/") == false) {
                 tempPath = tempPath + "/";
             }
