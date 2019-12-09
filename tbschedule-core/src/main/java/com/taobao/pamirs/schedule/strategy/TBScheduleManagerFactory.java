@@ -134,8 +134,8 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             }
             if (timerTask == null) {
                 timerTask = new ManagerFactoryTimerTask(this);
-                //延时两秒，
-                timer.schedule(timerTask, this.timerInterval, TimeUnit.MILLISECONDS);
+                // 需要延时两秒后，重复执行
+                timer.scheduleAtFixedRate(timerTask, this.timerInterval, 2000, TimeUnit.MILLISECONDS);
             }
         }
     }
