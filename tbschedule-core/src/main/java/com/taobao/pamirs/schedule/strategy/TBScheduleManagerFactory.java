@@ -44,9 +44,9 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
      * 是否启动调度管理，如果只是做系统管理，应该设置为false
      */
     public boolean start = true;
-    
+
     private int timerInterval = 2000;
-    
+
     /**
      * ManagerFactoryTimerTask上次执行的时间戳。<br/> 
      * zk环境不稳定，可能导致所有task自循环丢失，调度停止。<br/> 
@@ -67,7 +67,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     private String uuid;
     private String ip;
     private String hostName;
-    
+
     private ScheduledThreadPoolExecutor timer;
     private ManagerFactoryTimerTask timerTask;
     protected Lock lock = new ReentrantLock();
@@ -103,8 +103,8 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         try {
             this.scheduleDataManager = null;
             this.scheduleStrategyManager = null;
-            this.scheduleMicroserverManager=null;
-            ConsoleManager.setScheduleManagerFactory(p,this);
+            this.scheduleMicroserverManager = null;
+            ConsoleManager.setScheduleManagerFactory(p, this);
             if (this.zkManager != null) {
                 this.zkManager.close();
             }
@@ -125,17 +125,18 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         this.zkManager.initial();
         this.scheduleDataManager = new ScheduleDataManager4ZK(this.zkManager);
         this.scheduleStrategyManager = new ScheduleStrategyDataManager4ZK(this.zkManager);
-        this.scheduleMicroserverManager=new ScheduleMicroserverDataManager4ZK(this.zkManager);
+        this.scheduleMicroserverManager = new ScheduleMicroserverDataManager4ZK(this.zkManager);
         if (this.start == true) {
             // 注册调度管理器
             this.scheduleStrategyManager.registerManagerFactory(this);
             if (timer == null) {
-            	timer = new ScheduledThreadPoolExecutor(2);
+                timer = new ScheduledThreadPoolExecutor(2);
             }
             if (timerTask == null) {
                 timerTask = new ManagerFactoryTimerTask(this);
-                //延时两秒，
-                timer.schedule(timerTask, this.timerInterval, TimeUnit.MILLISECONDS);
+                //延时两秒后，周期执行
+                //timer.schedule(timerTask, this.timerInterval, TimeUnit.MILLISECONDS);
+                timer.scheduleAtFixedRate(timerTask, this.timerInterval, 2000, TimeUnit.MILLISECONDS);
             }
         }
     }
@@ -207,22 +208,18 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
      * 根据策略重新分配调度任务的机器
      */
     public void assignScheduleServer() throws Exception {
-        for (ScheduleStrategyRunntime run : this.scheduleStrategyManager
-            .loadAllScheduleStrategyRunntimeByUUID(this.uuid)) {
-            List<ScheduleStrategyRunntime> factoryList = this.scheduleStrategyManager
-                .loadAllScheduleStrategyRunntimeByTaskType(run.getStrategyName());
+        for (ScheduleStrategyRunntime run : this.scheduleStrategyManager.loadAllScheduleStrategyRunntimeByUUID(this.uuid)) {
+            List<ScheduleStrategyRunntime> factoryList = this.scheduleStrategyManager.loadAllScheduleStrategyRunntimeByTaskType(run.getStrategyName());
             if (factoryList.size() == 0 || this.isLeader(this.uuid, factoryList) == false) {
                 continue;
             }
             ScheduleStrategy scheduleStrategy = this.scheduleStrategyManager.loadStrategy(run.getStrategyName());
 
-            int[] nums = ScheduleUtil.assignTaskNumber(factoryList.size(), scheduleStrategy.getAssignNum(),
-                scheduleStrategy.getNumOfSingleServer());
+            int[] nums = ScheduleUtil.assignTaskNumber(factoryList.size(), scheduleStrategy.getAssignNum(), scheduleStrategy.getNumOfSingleServer());
             for (int i = 0; i < factoryList.size(); i++) {
                 ScheduleStrategyRunntime factory = factoryList.get(i);
                 // 更新请求的服务器数量
-                this.scheduleStrategyManager
-                    .updateStrategyRunntimeReqestNum(run.getStrategyName(), factory.getUuid(), nums[i]);
+                this.scheduleStrategyManager.updateStrategyRunntimeReqestNum(run.getStrategyName(), factory.getUuid(), nums[i]);
             }
         }
     }
@@ -243,8 +240,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     }
 
     public void reRunScheduleServer() throws Exception {
-        for (ScheduleStrategyRunntime run : this.scheduleStrategyManager
-            .loadAllScheduleStrategyRunntimeByUUID(this.uuid)) {
+        for (ScheduleStrategyRunntime run : this.scheduleStrategyManager.loadAllScheduleStrategyRunntimeByUUID(this.uuid)) {
             List<IStrategyTask> list = this.managerMap.get(run.getStrategyName());
             if (list == null) {
                 list = new ArrayList<IStrategyTask>();
@@ -264,9 +260,9 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
                 IStrategyTask result = this.createStrategyTask(strategy);
                 if (null == result) {
                     logger.error("strategy 对应的配置有问题。strategy name=" + strategy.getStrategyName());
-				} else {
-					list.add(result);
-				}
+                } else {
+                    list.add(result);
+                }
             }
         }
     }
@@ -389,7 +385,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         }
         return scheduleStrategyManager;
     }
-    
+
     public ScheduleMicroserverDataManager4ZK getScheduleMicroserverManager() {
         if (this.scheduleMicroserverManager == null) {
             throw new RuntimeException(this.errorMessage);
@@ -493,16 +489,14 @@ class InitialThread extends Thread {
 
     @Override
     public void run() {
-    	boolean needRestart = false;
+        boolean needRestart = false;
         facotry.lock.lock();
         try {
             int count = 0;
             while (facotry.zkManager.checkZookeeperState() == false) {
                 count = count + 1;
                 if (count % 50 == 0) {
-                    facotry.errorMessage =
-                        "Zookeeper connecting ......" + facotry.zkManager.getConnectStr() + " spendTime:" + count * 20
-                            + "(ms)";
+                    facotry.errorMessage = "Zookeeper connecting ......" + facotry.zkManager.getConnectStr() + " spendTime:" + count * 20 + "(ms)";
                     log.error(facotry.errorMessage);
                 }
                 Thread.sleep(20);
@@ -522,20 +516,20 @@ class InitialThread extends Thread {
              */
             needRestart = true;
         } finally {
-        	facotry.lock.unlock();
+            facotry.lock.unlock();
         }
-		while (needRestart) {
-			log.error("初始化线程异常，准备重启过程.....");
-			try {
-				facotry.reStart();
-				needRestart = false;
-			} catch (Exception e) {
-				log.error(e.getMessage(), e);
-				try {
-					sleep(20);
-				} catch (InterruptedException e1) {
-				}
-			}
-		}
-	}
+        while (needRestart) {
+            log.error("初始化线程异常，准备重启过程.....");
+            try {
+                facotry.reStart();
+                needRestart = false;
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+                try {
+                    sleep(20);
+                } catch (InterruptedException e1) {
+                }
+            }
+        }
+    }
 }
