@@ -47,11 +47,15 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     public volatile long timerTaskHeartBeatTS = System.currentTimeMillis();
 
     /**
-     * 调度配置中心客服端
+                * 调度配置中心客服端
      */
     private IScheduleDataManager scheduleDataManager;
     private ScheduleStrategyDataManager4ZK scheduleStrategyManager;
-
+    /**
+     * key: 策略名称
+     * 
+     * value:
+     */
     private Map<String, List<IStrategyTask>> managerMap = new ConcurrentHashMap<String, List<IStrategyTask>>();
 
     private ApplicationContext applicationcontext;
@@ -70,7 +74,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         this.ip = ScheduleUtil.getLocalIP();
         this.hostName = ScheduleUtil.getLocalHostName();
     }
-
+    
     public void init() throws Exception {
         Properties properties = new Properties();
         for (Map.Entry<String, String> e : this.zkConfig.entrySet()) {
@@ -102,6 +106,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             this.errorMessage = "Zookeeper connecting ......" + this.zkManager.getConnectStr();
             initialThread = new InitialThread(this);
             initialThread.setName("TBScheduleManagerFactory-initialThread");
+            System.out.println("init开始");
             initialThread.start();
         } finally {
             this.lock.unlock();
@@ -112,16 +117,30 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
      * 在Zk状态正常后回调数据初始化
      */
     public void initialData() throws Exception {
+        //RootPATH初始维护
         this.zkManager.initial();
+        //baseTaskType初始维护
         this.scheduleDataManager = new ScheduleDataManager4ZK(this.zkManager);
+        //strategy，factory初始维护
         this.scheduleStrategyManager = new ScheduleStrategyDataManager4ZK(this.zkManager);
         if (this.start == true) {
-            // 注册调度管理器
+            /**
+             *  注册(维护)调度管理器
+             *          factory/factoryUUID
+             *  维护策略分配节点
+             *          strategy/strategyName/factoryUUID
+             */
             this.scheduleStrategyManager.registerManagerFactory(this);
             if (timer == null) {
                 timer = new Timer("TBScheduleManagerFactory-Timer");
             }
             if (timerTask == null) {
+                /**
+                 * 心跳线程：
+                 *      优先级最高,每2秒执行一次
+                 *      检测zk连接状态，当连续5个心跳周期后zk仍然没有恢复正常连接，一切重新开始，完成闭环循环。
+                 *      当zk连接正常，进行核心工作流程: this.factory.refresh()
+                 */
                 timerTask = new ManagerFactoryTimerTask(this);
                 timer.schedule(timerTask, 2000, this.timerInterval);
             }
@@ -150,7 +169,13 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         }
         return result;
     }
-
+    /**
+     * 
+    * @Description: TODO
+    * @throws Exception   
+    * @return void   
+    * @author ycl 2019年12月13日
+     */
     public void refresh() throws Exception {
         this.lock.lock();
         try {
@@ -158,14 +183,21 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             ManagerFactoryInfo stsInfo = null;
             boolean isException = false;
             try {
+                //获取服务器信息
                 stsInfo = this.getScheduleStrategyManager().loadManagerFactoryInfo(this.getUuid());
             } catch (Exception e) {
+                //1：任务管理器不存在
+                //2：zk连接异常
                 isException = true;
                 logger.error("获取服务器信息有误：uuid=" + this.getUuid(), e);
             }
+            /**
+             * 异常时要注销该服务器上所有调度任务
+             */
             if (isException == true) {
                 try {
                     stopServer(null); // 停止所有的调度任务
+                   // (删除/strategy/taskName/factoryUUID节点)
                     this.getScheduleStrategyManager().unRregisterManagerFactory(this);
                 } finally {
                     reRegisterManagerFactory();
@@ -376,7 +408,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         }
         return scheduleStrategyManager;
     }
-
+@Override
     public void setApplicationContext(ApplicationContext aApplicationcontext) throws BeansException {
         applicationcontext = aApplicationcontext;
     }
@@ -464,10 +496,12 @@ class InitialThread extends Thread {
     boolean isStop = false;
 
     public InitialThread(TBScheduleManagerFactory aFactory) {
+        log.info("调用initThread构造方法...");
         this.facotry = aFactory;
     }
 
     public void stopThread() {
+        log.info("调用initThread线程停止...");
         this.isStop = true;
     }
 
@@ -475,6 +509,7 @@ class InitialThread extends Thread {
     public void run() {
         facotry.lock.lock();
         try {
+            log.info("initThread线程开始...");
             int count = 0;
             while (facotry.zkManager.checkZookeeperState() == false) {
                 count = count + 1;
@@ -486,11 +521,13 @@ class InitialThread extends Thread {
                 }
                 Thread.sleep(20);
                 if (this.isStop == true) {
+                    log.info("initThread线程停止...");
                     return;
                 }
             }
             facotry.initialData();
         } catch (Throwable e) {
+            log.info("initThread线程异常...");
             log.error(e.getMessage(), e);
         } finally {
             facotry.lock.unlock();

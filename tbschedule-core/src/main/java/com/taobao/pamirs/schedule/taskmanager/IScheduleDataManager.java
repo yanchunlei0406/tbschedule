@@ -71,7 +71,10 @@ public interface IScheduleDataManager {
     public boolean refreshScheduleServer(ScheduleServer server) throws Exception;
 
     /**
-     * 注册服务器
+             * 注册服务器：<br> 
+     *zk节点中注册任务对应调度器<br> 
+     *      /baseTaskType/baseTaskTypeName/taskType/server/tasktype$ip$uuid$SEQUENTIAL<br>
+             * 维护调度器信息uuid,heartBeatTime,Register=true<br>
      */
     public void registerScheduleServer(ScheduleServer server) throws Exception;
 

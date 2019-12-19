@@ -827,7 +827,11 @@ public class ScheduleDataManager4ZK implements IScheduleDataManager {
             log.debug(buffer.toString());
         }
     }
-
+    /**
+     *zk节点中注册任务对应调度器<br> 
+     *      /baseTaskType/baseTaskTypeName/taskType/server/tasktype$ip$uuid$SEQUENTIAL<br>
+             * 维护调度器信息uuid,heartBeatTime,Register=true<br>
+     */
     @Override
     public void registerScheduleServer(ScheduleServer server) throws Exception {
         if (server.isRegister() == true) {
@@ -842,7 +846,8 @@ public class ScheduleDataManager4ZK implements IScheduleDataManager {
             this.getZooKeeper().create(zkPath, null, this.zkManager.getAcl(), CreateMode.PERSISTENT);
         }
         String realPath = null;
-        // 此处必须增加UUID作为唯一性保障
+        // 此处必须增加U UID作为唯一性保障
+        //tasktype$ip$uuid$SEQUENTIAL
         String zkServerPath =
             zkPath + "/" + server.getTaskType() + "$" + server.getIp() + "$" + (UUID.randomUUID().toString()
                 .replaceAll("-", "").toUpperCase()) + "$";
@@ -883,7 +888,10 @@ public class ScheduleDataManager4ZK implements IScheduleDataManager {
             return true;
         }
     }
-
+    /**
+     * 从配置中心注销自己
+     * 删除节点/baseTaskType/taskType/server/serverUUID
+     */
     @Override
     public void unRegisterScheduleServer(String taskType, String serverUUID) throws Exception {
         String baseTaskType = ScheduleUtil.splitBaseTaskTypeFromTaskType(taskType);

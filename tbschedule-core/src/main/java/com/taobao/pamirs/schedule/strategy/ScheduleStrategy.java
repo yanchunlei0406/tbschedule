@@ -1,7 +1,11 @@
 package com.taobao.pamirs.schedule.strategy;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
-
+/**
+ * 策略对象
+* @Description: TODO
+* @author ycl 2019年12月12日
+ */
 public class ScheduleStrategy {
 
     public enum Kind {
@@ -9,7 +13,7 @@ public class ScheduleStrategy {
     }
 
     /**
-     * 任务类型
+     * 策略名称
      */
     private String strategyName;
 
@@ -20,14 +24,18 @@ public class ScheduleStrategy {
      * 指定需要执行调度的机器数量
      */
     private int assignNum;
-
+    /**
+     * 任务类型 Schedule, Java, Bean
+     */
     private Kind kind;
 
     /**
-     * Schedule Name,Class Name、Bean Name
+     * 任务名称
      */
     private String taskName;
-
+    /**
+     * 任务参数
+     */
     private String taskParameter;
 
     /**

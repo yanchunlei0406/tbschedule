@@ -77,7 +77,9 @@ abstract class TBScheduleManager implements IStrategyTask {
      * 向配置中心更新信息的定时器
      */
     private Timer heartBeatTimer;
-
+    /**
+             * 调度中心的客户端实现：ScheduleDataManager4ZK
+     */
     protected IScheduleDataManager scheduleCenter;
 
     protected String startErrorInfo = null;
@@ -92,17 +94,31 @@ abstract class TBScheduleManager implements IStrategyTask {
 
     TBScheduleManagerFactory factory;
 
+    /**
+     * 
+             *  调度器构造构造函数</br>
+    * 1：清理 </br>
+    * 2：维护zk中 taskType对应调度器的信息</br>
+    * 3：启动心跳线程</br>
+    * 4：调用初始化方法initial()</br>
+    * @param aFactory
+    * @param baseTaskType
+    * @param ownSign
+    * @param aScheduleCenter
+    * @throws Exception
+     */
     TBScheduleManager(TBScheduleManagerFactory aFactory, String baseTaskType, String ownSign,
         IScheduleDataManager aScheduleCenter) throws Exception {
         this.factory = aFactory;
         this.currentSerialNumber = serialNumber();
         this.scheduleCenter = aScheduleCenter;
+        //获取任务节点信息
         this.taskTypeInfo = this.scheduleCenter.loadTaskTypeBaseInfo(baseTaskType);
         log.info("create TBScheduleManager for taskType:" + baseTaskType);
         // 清除已经过期1天的TASK,OWN_SIGN的组合。超过一天没有活动server的视为过期
         this.scheduleCenter.clearExpireTaskTypeRunningInfo(baseTaskType, ScheduleUtil.getLocalIP() + "清除过期OWN_SIGN信息",
             this.taskTypeInfo.getExpireOwnSignInterval());
-
+        //根据BeanName获取Bean
         Object dealBean = aFactory.getBean(this.taskTypeInfo.getDealBeanName());
         if (dealBean == null) {
             throw new Exception("SpringBean " + this.taskTypeInfo.getDealBeanName() + " 不存在");
@@ -113,20 +129,22 @@ abstract class TBScheduleManager implements IStrategyTask {
         this.taskDealBean = (IScheduleTaskDeal) dealBean;
 
         if (this.taskTypeInfo.getJudgeDeadInterval() < this.taskTypeInfo.getHeartBeatRate() * 5) {
-            throw new Exception(
-                "数据配置存在问题，死亡的时间间隔，至少要大于心跳线程的5倍。当前配置数据：JudgeDeadInterval = " + this.taskTypeInfo.getJudgeDeadInterval()
-                    + ",HeartBeatRate = "
+            throw new Exception("数据配置存在问题，死亡的时间间隔，至少要大于心跳线程的5倍。当前配置数据：JudgeDeadInterval = " + this.taskTypeInfo.getJudgeDeadInterval() + ",HeartBeatRate = "
                     + this.taskTypeInfo.getHeartBeatRate());
         }
-        this.currenScheduleServer = ScheduleServer
-            .createScheduleServer(this.scheduleCenter, baseTaskType, ownSign, this.taskTypeInfo.getThreadNumber());
+        //定义调度器基本信息 ScheduleServer
+        this.currenScheduleServer = ScheduleServer.createScheduleServer(this.scheduleCenter, baseTaskType, ownSign, this.taskTypeInfo.getThreadNumber());
         this.currenScheduleServer.setManagerFactoryUUID(this.factory.getUuid());
         scheduleCenter.registerScheduleServer(this.currenScheduleServer);
         this.mBeanName = "pamirs:name=" + "schedule.ServerMananger." + this.currenScheduleServer.getUuid();
-        this.heartBeatTimer = new Timer(
-            this.currenScheduleServer.getTaskType() + "-" + this.currentSerialNumber + "-HeartBeat");
-        this.heartBeatTimer.schedule(new HeartBeatTimerTask(this), new java.util.Date(System.currentTimeMillis() + 500),
-            this.taskTypeInfo.getHeartBeatRate());
+        //启动心跳线程
+        //1：
+        //2：
+        this.heartBeatTimer = new Timer(this.currenScheduleServer.getTaskType() + "-" + this.currentSerialNumber + "-HeartBeat");
+        this.heartBeatTimer.schedule(new HeartBeatTimerTask(this), new java.util.Date(System.currentTimeMillis() + 500), this.taskTypeInfo.getHeartBeatRate());
+        //调度任务队列执行
+        //1：
+        //2：
         initial();
     }
 
@@ -324,7 +342,8 @@ abstract class TBScheduleManager implements IStrategyTask {
     }
 
     /**
-     * 当服务器停止的时候，调用此方法清除所有未处理任务，清除服务器的注册信息。 也可能是控制中心发起的终止指令。 需要注意的是，这个方法必须在当前任务处理完毕后才能执行
+     * 当服务器停止的时候，调用此方法清除所有未处理任务，清除服务器的注册信息。 也可能是控制中心发起的终止指令。 
+     * 需要注意的是，这个方法必须在当前任务处理完毕后才能执行
      */
     @Override
     public void stop(String strategyName) throws Exception {
@@ -333,6 +352,11 @@ abstract class TBScheduleManager implements IStrategyTask {
         }
         this.isPauseSchedule = false;
         if (this.processor != null) {
+            /**
+             * 标记调度服务器停止isStopSchedule=true(调度线程执行完当前任务后，退出调度)
+             * 清除任务队列
+             * 
+             */
             this.processor.stopSchedule();
         } else {
             this.unRegisterScheduleServer();
@@ -359,6 +383,7 @@ abstract class TBScheduleManager implements IStrategyTask {
             // 取消心跳TIMER
             this.heartBeatTimer.cancel();
             // 从配置中心注销自己
+            //删除节点/baseTaskType/taskType/server/serverUUID;
             this.scheduleCenter
                 .unRegisterScheduleServer(this.currenScheduleServer.getTaskType(), this.currenScheduleServer.getUuid());
         } finally {

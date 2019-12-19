@@ -7,7 +7,11 @@ import java.util.Map;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+/**
+ * 任务调度分配器
+* @Description: TODO
+* @author ycl 2019年12月13日
+ */
 public class TBScheduleManagerStatic extends TBScheduleManager {
 
     private static transient Logger log = LoggerFactory.getLogger(TBScheduleManagerStatic.class);
@@ -19,7 +23,18 @@ public class TBScheduleManagerStatic extends TBScheduleManager {
     protected long lastFetchVersion = -1;
 
     private final Object NeedReloadTaskItemLock = new Object();
-
+    /**
+     * 通过父类构造方法:<br>
+     *          1:维护zk中 taskType对应调度器的信息<br>
+     *          2:启动心跳线程<br>
+     *          3:调用factory中的初始化方法initial()<br>
+     * TBScheduleManagerStatic.  <br>
+     * @param aFactory
+     * @param baseTaskType
+     * @param ownSign
+     * @param aScheduleCenter
+     * @throws Exception
+     */
     public TBScheduleManagerStatic(TBScheduleManagerFactory aFactory, String baseTaskType, String ownSign,
         IScheduleDataManager aScheduleCenter) throws Exception {
         super(aFactory, baseTaskType, ownSign, aScheduleCenter);

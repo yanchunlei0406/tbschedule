@@ -5,19 +5,24 @@ import com.taobao.pamirs.schedule.strategy.ScheduleStrategy.Kind;
 public class ScheduleStrategyRunntime {
 
     /**
-     * 任务类型
+     * 策略名称
      */
     String strategyName;
-    String uuid;
-    String ip;
-
-    private Kind kind;
-
     /**
-     * Schedule Name,Class Name、Bean Name
+     * 任务名称
      */
     private String taskName;
+    String uuid;
+    String ip;
+    /**
+     * 任务类型,Class Name、Bean Name
+     */
+    private Kind kind;
 
+
+    /**
+     * 任务参数
+     */
     private String taskParameter;
 
     /**
