@@ -135,10 +135,11 @@ abstract class TBScheduleManager implements IStrategyTask {
         //定义调度器基本信息 ScheduleServer
         this.currenScheduleServer = ScheduleServer.createScheduleServer(this.scheduleCenter, baseTaskType, ownSign, this.taskTypeInfo.getThreadNumber());
         this.currenScheduleServer.setManagerFactoryUUID(this.factory.getUuid());
+        //  /baseTaskType/baseTaskTypeName/taskType/server/tasktype$ip$uuid$SEQUENTIAL
         scheduleCenter.registerScheduleServer(this.currenScheduleServer);
         this.mBeanName = "pamirs:name=" + "schedule.ServerMananger." + this.currenScheduleServer.getUuid();
         //启动心跳线程
-        //1：
+        //1：0.5秒后开始，每5秒执行一次
         //2：
         this.heartBeatTimer = new Timer(this.currenScheduleServer.getTaskType() + "-" + this.currentSerialNumber + "-HeartBeat");
         this.heartBeatTimer.schedule(new HeartBeatTimerTask(this), new java.util.Date(System.currentTimeMillis() + 500), this.taskTypeInfo.getHeartBeatRate());
@@ -152,7 +153,11 @@ abstract class TBScheduleManager implements IStrategyTask {
      * 对象创建时需要做的初始化工作
      */
     public abstract void initial() throws Exception;
-
+    /**
+     * 定时向数据配置中心更新当前服务器的心跳信息。<br> 
+     * 如果发现本次更新的时间如果已经超过了，服务器死亡的心跳周期，则不能在向服务器更新信息。<br> 
+     * 而应该当作新的服务器，进行重新注册。<br>
+     */
     public abstract void refreshScheduleServerInfo() throws Exception;
 
     public abstract void assignScheduleTask() throws Exception;
@@ -194,7 +199,17 @@ abstract class TBScheduleManager implements IStrategyTask {
         }
 
     }
-
+    /**
+     * 
+     *检测服务器节点信息是否存在：<br>
+     * /baseTaskType/baseTaskTypeName/taskType/server/tasktype$ip$uuid$SEQUENTIAL<br>
+     * 存在：<br>
+     *          更新心跳时间<br>         
+     * 不存在:<br>
+     *          注册服务器<br>
+     * @return    
+     * @author ycl 2019年12月24日
+     */
     public void rewriteScheduleInfo() throws Exception {
         registerLock.lock();
         try {
@@ -211,6 +226,7 @@ abstract class TBScheduleManager implements IStrategyTask {
             } else {
                 this.currenScheduleServer.setDealInfoDesc(startErrorInfo);
             }
+            //向数据配置中心更新当前服务器的心跳信息
             if (this.scheduleCenter.refreshScheduleServer(this.currenScheduleServer) == false) {
                 // 更新信息失败，清除内存数据后重新注册
                 this.clearMemoInfo();

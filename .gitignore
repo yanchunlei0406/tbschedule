@@ -1,3 +1,8 @@
+# gradle
+.gradle
+/build/
+!gradle/wrapper/gradle-wrapper.jar
+
 # maven ignore
 target/
 *.jar
@@ -10,6 +15,14 @@ target/
 .settings/
 .project
 .classpath
+.apt_generated
+.factorypath
+.project
+.settings
+.springBeans
+.class
+
+
 
 # idea ignore
 .idea/
@@ -30,3 +43,12 @@ target/
 # system ignore
 .DS_Store
 Thumbs.db
+
+### NetBeans ###
+nbproject/private/
+build/
+bin/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/

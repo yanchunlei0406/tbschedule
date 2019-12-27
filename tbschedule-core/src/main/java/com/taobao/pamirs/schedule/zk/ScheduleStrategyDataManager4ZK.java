@@ -37,7 +37,11 @@ public class ScheduleStrategyDataManager4ZK {
             ZKTools.createPath(getZooKeeper(), this.PATH_ManagerFactory, CreateMode.PERSISTENT, this.zkManager.getAcl());
         }
     }
-
+    /**
+     * 获取/strategy/strategyName 运行时信息
+     * @return    
+     * @author ycl 2019年12月23日
+     */
     public ScheduleStrategy loadStrategy(String strategyName) throws Exception {
         String zkPath = this.PATH_Strategy + "/" + strategyName;
         if (this.getZooKeeper().exists(zkPath, false) == null) {
@@ -174,7 +178,16 @@ public class ScheduleStrategyDataManager4ZK {
             }
         }
     }
-
+    /**
+     * 获取节点信息:/strategy/strategyName/factoryUUID
+     * @Description: TODO
+     * @param strategyName
+     * @param uuid
+     * @return
+     * @throws Exception   
+     * @return ScheduleStrategyRunntime   
+     * @author ycl 2019年12月23日
+     */
     public ScheduleStrategyRunntime loadScheduleStrategyRunntime(String strategyName, String uuid) throws Exception {
         String zkPath = this.PATH_Strategy + "/" + strategyName + "/" + uuid;
         ScheduleStrategyRunntime result = null;
@@ -216,27 +229,40 @@ public class ScheduleStrategyDataManager4ZK {
         }
         return result;
     }
-
+   /**
+    * 返回当前factory可执行的策略信息集合
+    * /strategy/strategyName/factoryUUID
+    * @return    
+    * @author ycl 2019年12月23日
+    */
     public List<ScheduleStrategyRunntime> loadAllScheduleStrategyRunntimeByUUID(String managerFactoryUUID) throws Exception {
         List<ScheduleStrategyRunntime> result = new ArrayList<ScheduleStrategyRunntime>();
+        // 策略节点/strategy
         String zkPath = this.PATH_Strategy;
-
+        // 节点下是所有策略
         List<String> taskTypeList = this.getZooKeeper().getChildren(zkPath, false);
+        // 排序
         Collections.sort(taskTypeList);
         for (String taskType : taskTypeList) {
+            //  存在节点/strategy/strategyName/factoryUUID
             if (this.getZooKeeper().exists(zkPath + "/" + taskType + "/" + managerFactoryUUID, false) != null) {
                 result.add(loadScheduleStrategyRunntime(taskType, managerFactoryUUID));
             }
         }
         return result;
     }
-
+    /**
+     * 获取/strategy/strategyName/* 下所有factoryUUID的运行时信息并返回
+     * @return    
+     * @author ycl 2019年12月23日
+     */
     public List<ScheduleStrategyRunntime> loadAllScheduleStrategyRunntimeByTaskType(String strategyName) throws Exception {
         List<ScheduleStrategyRunntime> result = new ArrayList<ScheduleStrategyRunntime>();
         String zkPath = this.PATH_Strategy;
         if (this.getZooKeeper().exists(zkPath + "/" + strategyName, false) == null) {
             return result;
         }
+        //获取 /strategy/strategyName/* 下所有的factoryUUID
         List<String> uuidList = this.getZooKeeper().getChildren(zkPath + "/" + strategyName, false);
         // 排序
         Collections.sort(uuidList, new Comparator<String>() {
@@ -244,7 +270,7 @@ public class ScheduleStrategyDataManager4ZK {
                 return u1.substring(u1.lastIndexOf("$") + 1).compareTo(u2.substring(u2.lastIndexOf("$") + 1));
             }
         });
-
+        //获取运行时信息
         for (String uuid : uuidList) {
             result.add(loadScheduleStrategyRunntime(strategyName, uuid));
         }
@@ -253,6 +279,7 @@ public class ScheduleStrategyDataManager4ZK {
 
     /**
      * 更新请求数量
+     * /strategy/strategyName/factoryUUID --> requestNum
      */
     public void updateStrategyRunntimeReqestNum(String strategyName, String manangerFactoryUUID, int requestNum) throws Exception {
         String zkPath = this.PATH_Strategy + "/" + strategyName + "/" + manangerFactoryUUID;

@@ -87,7 +87,6 @@ public class ScheduleUtil {
      * @param serverNum 总的服务器数量
      * @param taskItemNum 任务项数量
      * @param maxNumOfOneServer 每个server最大任务项数目
-     * @param maxNum 总的任务数量
      */
     public static int[] assignTaskNumber(int serverNum, int taskItemNum, int maxNumOfOneServer) {
         int[] taskNums = new int[serverNum];

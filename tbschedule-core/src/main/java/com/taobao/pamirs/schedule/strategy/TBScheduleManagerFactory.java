@@ -52,9 +52,9 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     private IScheduleDataManager scheduleDataManager;
     private ScheduleStrategyDataManager4ZK scheduleStrategyManager;
     /**
-     * key: 策略名称
+     * key: 策略名称<br>
      * 
-     * value:
+     * value:任务调度分配器
      */
     private Map<String, List<IStrategyTask>> managerMap = new ConcurrentHashMap<String, List<IStrategyTask>>();
 
@@ -74,7 +74,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         this.ip = ScheduleUtil.getLocalIP();
         this.hostName = ScheduleUtil.getLocalHostName();
     }
-    
+
     public void init() throws Exception {
         Properties properties = new Properties();
         for (Map.Entry<String, String> e : this.zkConfig.entrySet()) {
@@ -149,6 +149,8 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
 
     /**
      * 创建调度服务器
+     * @param strategy 策略信息 /strategy/strategyName    
+     * @author ycl 2019年12月23日
      */
     public IStrategyTask createStrategyTask(ScheduleStrategy strategy) throws Exception {
         IStrategyTask result = null;
@@ -169,8 +171,13 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         }
         return result;
     }
+
     /**
      * 
+     * 1:判断服务器信息是否停止
+     *   服务器停止,服务器上的所有调度器需要标记销毁:TODO
+     * 2：重新分配调度器(/strategy/taskName/factoryUUID)
+     *   
     * @Description: TODO
     * @throws Exception   
     * @return void   
@@ -179,7 +186,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     public void refresh() throws Exception {
         this.lock.lock();
         try {
-            // 判断状态是否终止
+            //判断状态是否终止
             ManagerFactoryInfo stsInfo = null;
             boolean isException = false;
             try {
@@ -196,8 +203,9 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
              */
             if (isException == true) {
                 try {
-                    stopServer(null); // 停止所有的调度任务
-                   // (删除/strategy/taskName/factoryUUID节点)
+                    // 停止所有的调度任务
+                    stopServer(null);
+                    // (删除/strategy/taskName/factoryUUID节点)
                     this.getScheduleStrategyManager().unRregisterManagerFactory(this);
                 } finally {
                     reRegisterManagerFactory();
@@ -213,36 +221,50 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         }
     }
 
+    /**
+     * 重新分配调度器:
+     * 1:遍历要注销的策略名称进行任务注销
+     * 2:获取当前服务器可执行策略的信息集合: /strategy/strategyName/factoryUUID
+     * 3:
+     * @Description: TODO
+     * @throws Exception   
+     * @return void   
+     * @author ycl 2019年12月23日
+     */
     public void reRegisterManagerFactory() throws Exception {
-        // 重新分配调度器
         List<String> stopList = this.getScheduleStrategyManager().registerManagerFactory(this);
         for (String strategyName : stopList) {
             this.stopServer(strategyName);
         }
+        //重新分配调度任务的机器
         this.assignScheduleServer();
         this.reRunScheduleServer();
     }
 
     /**
-     * 根据策略重新分配调度任务的机器
+     * 根据策略重新分配调度任务的机器<br>
+     * （更新请求的服务器数量 /strategy/strategyName/factoryUUID --> requestNum）<br>
+     * 由于factoryList是排序的，请求服务器数量一般不会发生变化<br>
      */
     public void assignScheduleServer() throws Exception {
-        for (ScheduleStrategyRunntime run : this.scheduleStrategyManager
-            .loadAllScheduleStrategyRunntimeByUUID(this.uuid)) {
-            List<ScheduleStrategyRunntime> factoryList = this.scheduleStrategyManager
-                .loadAllScheduleStrategyRunntimeByTaskType(run.getStrategyName());
+        //返回当前factory可执行的策略信息集合 /strategy/strategyName/factoryUUID
+        //遍历集合
+        for (ScheduleStrategyRunntime run : this.scheduleStrategyManager.loadAllScheduleStrategyRunntimeByUUID(this.uuid)) {
+            // 根据策略名称，返回策略下的所有factory运行时信息
+            // /strategy/strategyName/*
+            List<ScheduleStrategyRunntime> factoryList = this.scheduleStrategyManager.loadAllScheduleStrategyRunntimeByTaskType(run.getStrategyName());
+            // uuid最小的为Leader节点，只有Leader节点可以分配调度任务
             if (factoryList.size() == 0 || this.isLeader(this.uuid, factoryList) == false) {
                 continue;
             }
+            //获取当前策略的运行时信息 /strategy/strategyName
             ScheduleStrategy scheduleStrategy = this.scheduleStrategyManager.loadStrategy(run.getStrategyName());
-
-            int[] nums = ScheduleUtil.assignTaskNumber(factoryList.size(), scheduleStrategy.getAssignNum(),
-                scheduleStrategy.getNumOfSingleServer());
+            //分配任务数量
+            int[] nums = ScheduleUtil.assignTaskNumber(factoryList.size(), scheduleStrategy.getAssignNum(), scheduleStrategy.getNumOfSingleServer());
             for (int i = 0; i < factoryList.size(); i++) {
                 ScheduleStrategyRunntime factory = factoryList.get(i);
                 // 更新请求的服务器数量
-                this.scheduleStrategyManager
-                    .updateStrategyRunntimeReqestNum(run.getStrategyName(), factory.getUuid(), nums[i]);
+                this.scheduleStrategyManager.updateStrategyRunntimeReqestNum(run.getStrategyName(), factory.getUuid(), nums[i]);
             }
         }
     }
@@ -261,10 +283,15 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             return true;
         }
     }
-
+    /**
+     * 停止/增加调度器
+     * @return    
+     * @author ycl 2019年12月23日
+     */
     public void reRunScheduleServer() throws Exception {
-        for (ScheduleStrategyRunntime run : this.scheduleStrategyManager
-            .loadAllScheduleStrategyRunntimeByUUID(this.uuid)) {
+        //返回当前factory可执行的策略信息集合 /strategy/strategyName/factoryUUID
+        for (ScheduleStrategyRunntime run : this.scheduleStrategyManager.loadAllScheduleStrategyRunntimeByUUID(this.uuid)) {
+            //根据策略名称获取任务调度分配器
             List<IStrategyTask> list = this.managerMap.get(run.getStrategyName());
             if (list == null) {
                 list = new ArrayList<IStrategyTask>();
@@ -281,6 +308,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             // 不足，增加调度器
             ScheduleStrategy strategy = this.scheduleStrategyManager.loadStrategy(run.getStrategyName());
             while (list.size() < run.getRequestNum()) {
+                //根据策略信息创建调度服务器
                 IStrategyTask result = this.createStrategyTask(strategy);
                 if (null == result) {
                     logger.error("strategy 对应的配置有问题。strategy name=" + strategy.getStrategyName());
@@ -408,7 +436,8 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         }
         return scheduleStrategyManager;
     }
-@Override
+
+    @Override
     public void setApplicationContext(ApplicationContext aApplicationcontext) throws BeansException {
         applicationcontext = aApplicationcontext;
     }
@@ -514,9 +543,7 @@ class InitialThread extends Thread {
             while (facotry.zkManager.checkZookeeperState() == false) {
                 count = count + 1;
                 if (count % 50 == 0) {
-                    facotry.errorMessage =
-                        "Zookeeper connecting ......" + facotry.zkManager.getConnectStr() + " spendTime:" + count * 20
-                            + "(ms)";
+                    facotry.errorMessage = "Zookeeper connecting ......" + facotry.zkManager.getConnectStr() + " spendTime:" + count * 20 + "(ms)";
                     log.error(facotry.errorMessage);
                 }
                 Thread.sleep(20);

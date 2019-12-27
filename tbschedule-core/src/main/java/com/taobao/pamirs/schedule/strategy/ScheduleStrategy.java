@@ -57,7 +57,11 @@ public class ScheduleStrategy {
     public void setStrategyName(String strategyName) {
         this.strategyName = strategyName;
     }
-
+    /**
+     * 任务项数量
+     * @return    
+     * @author ycl 2019年12月23日
+     */
     public int getAssignNum() {
         return assignNum;
     }
@@ -77,7 +81,11 @@ public class ScheduleStrategy {
     public void setNumOfSingleServer(int numOfSingleServer) {
         this.numOfSingleServer = numOfSingleServer;
     }
-
+    /**
+     * 单服务器允许的最大数量，已废弃使用
+     * @return    
+     * @author ycl 2019年12月23日
+     */
     public int getNumOfSingleServer() {
         return numOfSingleServer;
     }

@@ -117,8 +117,9 @@ public class TBScheduleManagerStatic extends TBScheduleManager {
     }
 
     /**
-     * 定时向数据配置中心更新当前服务器的心跳信息。 如果发现本次更新的时间如果已经超过了，
-     * 服务器死亡的心跳周期，则不能在向服务器更新信息。 而应该当作新的服务器，进行重新注册。
+     * 定时向数据配置中心更新当前服务器的心跳信息。 <br>
+     * 如果发现本次更新的时间如果已经超过了，服务器死亡的心跳周期，则不能在向服务器更新信息。 <br>
+     * 而应该当作新的服务器，进行重新注册。<br>
      */
     @Override
     public void refreshScheduleServerInfo() throws Exception {
