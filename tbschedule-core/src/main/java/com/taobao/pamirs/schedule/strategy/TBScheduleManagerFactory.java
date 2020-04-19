@@ -283,6 +283,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             return true;
         }
     }
+
     /**
      * 停止/增加调度器
      * @return    
@@ -537,6 +538,7 @@ class InitialThread extends Thread {
     @Override
     public void run() {
         facotry.lock.lock();
+        boolean needRestart = false;
         try {
             log.info("initThread线程开始...");
             int count = 0;
@@ -556,10 +558,27 @@ class InitialThread extends Thread {
         } catch (Throwable e) {
             log.info("initThread线程异常...");
             log.error(e.getMessage(), e);
+            /**
+             * 这里一般意味着initialData()出错
+             * check成功但初始化失败，说明连接又出问题了，这里继续重试重启状态
+             */
+            needRestart = true;
         } finally {
             facotry.lock.unlock();
         }
-
+        while (needRestart) {
+            log.error("初始化线程异常，准备重启过程.....");
+            try {
+                facotry.reStart();
+                needRestart = false;
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+                try {
+                    sleep(20);
+                } catch (InterruptedException e1) {
+                }
+            }
+        }
     }
 
 }
