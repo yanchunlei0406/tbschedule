@@ -1,0 +1,17 @@
+微服务版本:microservice-V2.0
+1:微服务重启时如果有异常，重新拉起
+	--修改TBScheduleManagerFactory.java
+2:java定时器，使用ScheduledThreadPoolExecutor替代Timer。
+	-- 修改TBScheduleManagerFactory.java
+	-- 修改TBScheduleManager.java
+3:使用CuratorFramework替代zkClient
+	--修改TBScheduleManagerFactory.java
+	--修改TBScheduleManager.java
+	--修改TBScheduleManagerStatic.java
+	--修改ScheduleDataManager4ZK.java
+	--修改ScheduleMicroserverDataManager4ZK.java
+	--修改ScheduleStrategyDataManager4ZK.java
+	--修改ScheduleWatcher.java
+	--修改ZKManager.java
+	--修改ZKTools.java
+	--修改ZookeeperTest.java
