@@ -1,0 +1,6 @@
+微服务版本:microservice
+1:微服务重启时如果有异常，重新拉起
+	--修改TBScheduleManagerFactory.java
+2:java定时器，使用ScheduledThreadPoolExecutor替代Timer。
+	-- 修改TBScheduleManagerFactory.java
+	-- 修改TBScheduleManager.java
