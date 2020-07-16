@@ -7,4 +7,29 @@
         <servlet-class>com.taobao.pamirs.schedule.WebInitial</servlet-class>
         <load-on-startup>1</load-on-startup>
     </servlet>
+<!--    <servlet>-->
+<!--        <servlet-name>jspAuth</servlet-name>-->
+<!--        <servlet-class>com.taobao.auth.AuthServlet</servlet-class>-->
+<!--        <load-on-startup>3</load-on-startup>-->
+<!--    </servlet>-->
+<!--    <servlet-mapping>-->
+<!--        <servlet-name>jspAuth</servlet-name>-->
+<!--        <url-pattern>*.jsp</url-pattern>-->
+<!--    </servlet-mapping>-->
+    <filter>
+        <filter-name>jspFilter</filter-name>
+        <filter-class>com.taobao.auth.AuthFilter</filter-class>
+        <init-param>
+            <param-name>name</param-name>
+            <param-value>ecp</param-value>
+        </init-param>
+        <init-param>
+            <param-name>cipher</param-name>
+            <param-value>ecp@2020</param-value>
+        </init-param>
+    </filter>
+    <filter-mapping>
+        <filter-name>jspFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
 </web-app>
