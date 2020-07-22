@@ -55,7 +55,7 @@ public class ScheduleMicroserverDataManager4ZK {
 	 */
 	public MicroServer loadMicro(String microName,boolean isDecode) throws Exception {
 		if(isDecode){
-			microName=new String(microName.trim().toString().getBytes("iso8859-1"),"utf-8");
+			microName=microName.trim().toString();
 		}
 		String zkPath = this.MicroPath + "/" + microName;
 		if (this.getZooKeeper().exists(zkPath, false) == null) {
@@ -74,7 +74,7 @@ public class ScheduleMicroserverDataManager4ZK {
 	 * @throws Exception
 	 */
 	public void createMicro(MicroServer ms) throws Exception {
-		String msName=new String(ms.getMicroName().trim().toString().getBytes("iso8859-1"),"utf-8");
+		String msName=ms.getMicroName().trim().toString();
 		String zkPath = this.MicroPath + "/" + msName;
 		if (this.getZooKeeper().exists(zkPath, false) == null) {
 			this.getZooKeeper().create(zkPath, ms.getMicroValue().trim().getBytes(), this.zkManager.getAcl(),
@@ -91,8 +91,8 @@ public class ScheduleMicroserverDataManager4ZK {
 	 */
 	public void updateMicro(MicroServer ms, String microNameOlad) throws Exception {
 		try {
-			String msName=new String(ms.getMicroName().trim().toString().getBytes("iso8859-1"),"utf-8");
-			microNameOlad=new String(microNameOlad.trim().toString().getBytes("iso8859-1"),"utf-8");
+			String msName=ms.getMicroName().trim().toString();
+			microNameOlad=microNameOlad.trim().toString();
 			String zkPath = this.MicroPath + "/" + msName;
 			if (!msName.equals(microNameOlad)) {
 				if(this.getZooKeeper().exists(zkPath, false) != null){
@@ -113,13 +113,11 @@ public class ScheduleMicroserverDataManager4ZK {
 	}
 
 	/**
-	 * 
-	 * @param taskType
 	 * @throws Exception
 	 */
 	public void deleteMicro(String microName) throws Exception {
 		try {
-			microName=new String(microName.trim().toString().getBytes("iso8859-1"),"utf-8");
+			microName=microName.toString().trim();
 			String zkPath = this.MicroPath + "/" + microName;
 			if (this.getZooKeeper().exists(zkPath, false) != null) {
 				ZKTools.deleteTree(this.getZooKeeper(), zkPath);

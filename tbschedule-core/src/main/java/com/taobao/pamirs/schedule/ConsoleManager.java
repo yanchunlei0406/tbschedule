@@ -47,8 +47,12 @@ public class ConsoleManager {
 			return false;
 		}
 		try {
-			String microName=new String(m.getMicroName().trim().toString().getBytes("iso8859-1"),"utf-8");
+			String microName=m.getMicroName().trim().toString();
 			MicroServer micro=ConsoleManager.getScheduleMicroserverManager(request).loadMicro(microName);
+			if(micro==null){
+                microName=new String(m.getMicroName().trim().toString().getBytes("iso8859-1"),"utf-8");
+                micro=ConsoleManager.getScheduleMicroserverManager(request).loadMicro(microName);
+            }
 			// 要跳转的微服务在Micro中
 			String goRootPath = micro.getMicroValue();
 			// request中有现在的properti配置
