@@ -1,5 +1,6 @@
 原生版本master-V1.0
-1:微服务重启时如果有异常，重新拉起（要实现的功能）
+1:微服务重启时如果有异常，重新拉起
 	--修改TBScheduleManagerFactory.java
 2:zookeeper依赖包从3.4.6升级到3.4.10
 	--pom.xml
+3:将调度器由"Timer"更改为"ScheduledThreadPoolExecutor"
