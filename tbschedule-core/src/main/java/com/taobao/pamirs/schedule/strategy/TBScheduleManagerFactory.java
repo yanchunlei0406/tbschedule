@@ -37,7 +37,8 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     protected ZKManager zkManager;
 
     /**
-     * 是否启动调度管理，如果只是做系统管理，应该设置为false
+     *	 是否启动调度管理，如果只是做系统管理，应该设置为false
+     * 	从ConsoleManager过来的对象就是false，不做为调度管理器
      */
     public boolean start = true;
     private int timerInterval = 2000;
@@ -63,8 +64,15 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
     private String ip;
     private String hostName;
 
+    /**
+     * 	初始化tBScheduleManagerFactory过程中会实体化timer和timerTask
+     * 	每2秒执行一次的定时任务
+     * 	当stopAll()和restart()时才会停止调度并销毁
+     */
     private Timer timer;
     private ManagerFactoryTimerTask timerTask;
+    
+    
     protected Lock lock = new ReentrantLock();
 
     volatile String errorMessage = "No config Zookeeper connect infomation";
@@ -98,6 +106,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         try {
             this.scheduleDataManager = null;
             this.scheduleStrategyManager = null;
+            //ConsoleManager.scheduelManagerFactory对象
             ConsoleManager.setScheduleManagerFactory(this);
             if (this.zkManager != null) {
                 this.zkManager.close();
@@ -125,9 +134,9 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
         this.scheduleStrategyManager = new ScheduleStrategyDataManager4ZK(this.zkManager);
         if (this.start == true) {
             /**
-             *  注册(维护)调度管理器
+             *  	注册(维护)调度管理器
              *          factory/factoryUUID
-             *  维护策略分配节点
+             *  	维护策略分配节点
              *          strategy/strategyName/factoryUUID
              */
             this.scheduleStrategyManager.registerManagerFactory(this);
@@ -136,10 +145,10 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             }
             if (timerTask == null) {
                 /**
-                 * 心跳线程：
-                 *      优先级最高,每2秒执行一次
-                 *      检测zk连接状态，当连续5个心跳周期后zk仍然没有恢复正常连接，一切重新开始，完成闭环循环。
-                 *      当zk连接正常，进行核心工作流程: this.factory.refresh()
+                 * 	心跳线程：
+                 *      	优先级最高,每2秒执行一次
+                 *      	检测zk连接状态，当连续5个心跳周期后zk仍然没有恢复正常连接，一切重新开始，完成闭环循环。
+                 *      	当zk连接正常，进行核心工作流程: this.factory.refresh()
                  */
                 timerTask = new ManagerFactoryTimerTask(this);
                 timer.schedule(timerTask, 2000, this.timerInterval);
@@ -193,13 +202,16 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
                 //获取服务器信息
                 stsInfo = this.getScheduleStrategyManager().loadManagerFactoryInfo(this.getUuid());
             } catch (Exception e) {
-                //1：任务管理器不存在
-                //2：zk连接异常
+                /**
+                 * zk的机器管理中，获取当前任务处理机信息异常
+                 * 1：任务管理器不存在
+                 * 2：zk连接异常
+                 */
                 isException = true;
                 logger.error("获取服务器信息有误：uuid=" + this.getUuid(), e);
             }
             /**
-             * 异常时要注销该服务器上所有调度任务
+             * 	异常时要注销该服务器上所有调度任务
              */
             if (isException == true) {
                 try {
@@ -233,6 +245,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
      */
     public void reRegisterManagerFactory() throws Exception {
         List<String> stopList = this.getScheduleStrategyManager().registerManagerFactory(this);
+        //根据不再运行的策略名称查找对应的任务调度器集合->终止运行
         for (String strategyName : stopList) {
             this.stopServer(strategyName);
         }
@@ -263,7 +276,7 @@ public class TBScheduleManagerFactory implements ApplicationContextAware {
             int[] nums = ScheduleUtil.assignTaskNumber(factoryList.size(), scheduleStrategy.getAssignNum(), scheduleStrategy.getNumOfSingleServer());
             for (int i = 0; i < factoryList.size(); i++) {
                 ScheduleStrategyRunntime factory = factoryList.get(i);
-                // 更新请求的服务器数量
+                // 更新每个服务器分配到的分片数量
                 this.scheduleStrategyManager.updateStrategyRunntimeReqestNum(run.getStrategyName(), factory.getUuid(), nums[i]);
             }
         }
@@ -498,7 +511,8 @@ class ManagerFactoryTimerTask extends java.util.TimerTask {
         try {
             Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
             if (this.factory.zkManager.checkZookeeperState() == false) {
-                if (count > 5) {
+                //连续5次（10s）没有连接到zk，就尝试销毁一切，重新初始化tbScheduleFactory
+            	if (count > 5) {
                     log.error("Zookeeper连接失败，关闭所有的任务后，重新连接Zookeeper服务器......");
                     this.factory.reStart();
 
@@ -506,6 +520,7 @@ class ManagerFactoryTimerTask extends java.util.TimerTask {
                     count = count + 1;
                 }
             } else {
+            	//zk连接正常时，定时(2s)进行数据检测、更新
                 count = 0;
                 this.factory.refresh();
             }

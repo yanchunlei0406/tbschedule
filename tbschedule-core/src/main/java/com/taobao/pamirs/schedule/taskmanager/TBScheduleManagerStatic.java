@@ -240,8 +240,9 @@ public class TBScheduleManagerStatic extends TBScheduleManager {
     }
 
     /**
-     * 由于上面在数据执行时有使用到synchronized ，但是心跳线程并没有对应加锁。
-     * 所以在此方法上加一下synchronized。
+     * 	由于上面在数据执行时有使用到synchronized ，但是心跳线程并没有对应加锁。
+     * 	所以在此方法上加一下synchronized。
+     * 	获取当前执行器的分片信息、参数信息
      */
     protected synchronized List<TaskItemDefine> getCurrentScheduleTaskItemListNow() throws Exception {
         // 如果已经稳定了，理论上不需要加载去扫描所有的叶子结点

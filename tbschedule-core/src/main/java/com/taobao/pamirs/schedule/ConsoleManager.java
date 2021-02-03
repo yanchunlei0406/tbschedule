@@ -31,6 +31,7 @@ public class ConsoleManager {
         }
         File file = new File(configFile);
         scheduleManagerFactory = new TBScheduleManagerFactory();
+        //从当前位置实例化的scheduleManagerFactory不做为调度管理器
         scheduleManagerFactory.start = false;
 
         if (file.exists() == true) {

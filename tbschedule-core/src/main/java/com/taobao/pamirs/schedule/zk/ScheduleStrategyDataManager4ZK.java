@@ -109,19 +109,20 @@ public class ScheduleStrategyDataManager4ZK {
     }
 
     /**
-     * 维护ManagerFactory:<br>
+     * 1：维护任务处理机tBScheduleManagerFactory:<br>
      *         <b> 初次注册</b><br>
      *                  生成一个唯一的UUID：ip$hostname$uuid，在/factory下注册临时顺序节点<br>
      *                  给当前factory的uuid属性赋值<br>
      *          <b>非初次注册</b><br>
      *                  检测节点是否存在(临时节点有可能因为网络原因丢失)。<br><br>
-     * 遍历/strategy下所有的策略信息strategyNames<br>
-     * if:   策略是暂停状态或没有配置运行ip<br>
-     *       清理/strategy/strategyName/factoryUUID节点<br>
-     * else:配置的运行ip是localhost/127.0.0.1/factoryHostName/factoryIp<br>
-     *        维护/strategy/strategyName/factoryUUID节点<br>
-     * else:<br>
-     *        清理/strategy/strategyName/factoryUUID节点<br>
+     * 2：遍历/strategy下所有的策略信息strategyNames<br>
+     * 		<b>当前处理机在可运行范围内&&策略是运行状态</b><br>
+     * 			维护：/strategy/strategyName/factoryUUID节点<br>
+     *      <b>处理机不在可运行范围内</b><br>
+     *      	判断：  /strategy/strategyName/factoryUUID节点存在<br>
+     *      		如果存在，删除节点，收集strategyName后续终止任务<br>
+     *      		如果不存在，表示已经中止任务<br>
+     *      	
      *        
      * @return 需要全部注销的调度
      */
@@ -141,7 +142,8 @@ public class ScheduleStrategyDataManager4ZK {
         List<String> result = new ArrayList<String>();
         for (ScheduleStrategy scheduleStrategy : loadAllScheduleStrategy()) {
             boolean isFind = false;
-            // 暂停或者不在IP范围
+            // 恢复状态，且在运行IP范围内，isFind=true
+            // 并且要存在 rootPath/strategy/strategyName/factoryUUID
             if (ScheduleStrategy.STS_PAUSE.equalsIgnoreCase(scheduleStrategy.getSts()) == false && scheduleStrategy.getIPList() != null) {
                 for (String ip : scheduleStrategy.getIPList()) {
                     if (ip.equals("127.0.0.1") || ip.equalsIgnoreCase("localhost") || ip.equals(managerFactory.getIp()) || ip.equalsIgnoreCase(managerFactory.getHostName())) {
@@ -155,6 +157,13 @@ public class ScheduleStrategyDataManager4ZK {
                     }
                 }
             }
+            /**
+             * 	策略是暂停状态，或者当前任务处理机不在策略的运行IP范围内
+             * 	判断rootPath/strategy/strategyName/factoryUUID节点
+             * 		1、如果存在 ，就需要删除节点，中止任务stopServer(strategyName)
+             * 		2、如果不存在，表示已经中止任务(如果极短时间内停止策略->删除策略及任务，可能出现任务未被中止的问题)
+             * 
+             */
             if (isFind == false) {// 清除原来注册的Factory
                 String zkPath = this.PATH_Strategy + "/" + scheduleStrategy.getStrategyName() + "/" + managerFactory.getUuid();
                 if (this.getZooKeeper().exists(zkPath, false) != null) {
